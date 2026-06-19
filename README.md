@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/sparkles.svg" width="80" alt="Saarthi Logo" />
+  <img src="public/logo.png" width="80" alt="Saarthi Logo" />
   <h1 align="center">Saarthi</h1>
   <p align="center">
     <strong>Voice-first Hinglish AI Co-Pilot for Indian Classrooms</strong>
