@@ -1,0 +1,260 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+
+    --primary: 234 55% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 345 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 70% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 234 55% 58%;
+
+    --radius: 0.375rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 40%;
+    --sidebar-primary: 234 55% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 234 55% 58%;
+
+    --severity-critical: 345 72% 51%;
+    --severity-high: 25 95% 53%;
+    --severity-medium: 38 92% 50%;
+    --severity-low: 142 70% 40%;
+  }
+
+  .dark {
+    --background: 240 6% 6%;
+    --foreground: 0 0% 90%;
+
+    --card: 240 5% 9%;
+    --card-foreground: 0 0% 90%;
+
+    --popover: 240 5% 9%;
+    --popover-foreground: 0 0% 90%;
+
+    --primary: 234 55% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 240 4% 14%;
+    --muted-foreground: 0 0% 50%;
+
+    --accent: 240 4% 14%;
+    --accent-foreground: 0 0% 90%;
+
+    --destructive: 345 90% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 100% 50%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 100% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 199 100% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 240 4% 26%;
+    --input: 240 4% 26%;
+    --ring: 234 55% 60%;
+
+    --sidebar-background: 240 6% 5%;
+    --sidebar-foreground: 0 0% 55%;
+    --sidebar-primary: 234 55% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 10%;
+    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-border: 240 4% 26%;
+    --sidebar-ring: 234 55% 60%;
+
+    --severity-critical: 345 90% 60%;
+    --severity-high: 25 100% 58%;
+    --severity-medium: 38 100% 55%;
+    --severity-low: 145 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    background-color: hsl(0 0% 100%);
+  }
+
+  html.dark {
+    background-color: hsl(240 6% 4%);
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium tracking-tight;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.45) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.45) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .bg-grid-fade {
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 40%, transparent 100%);
+  }
+
+  .aurora {
+    background:
+      radial-gradient(60% 50% at 20% 20%, hsl(var(--primary) / 0.35), transparent 70%),
+      radial-gradient(50% 50% at 80% 10%, hsl(280 80% 60% / 0.28), transparent 70%),
+      radial-gradient(60% 50% at 60% 90%, hsl(190 90% 55% / 0.22), transparent 70%);
+    filter: blur(40px);
+    animation: aurora-shift 18s ease-in-out infinite alternate;
+  }
+  @keyframes aurora-shift {
+    0%   { transform: translate3d(0,0,0) scale(1); }
+    50%  { transform: translate3d(-3%, 2%, 0) scale(1.08); }
+    100% { transform: translate3d(3%, -2%, 0) scale(1.04); }
+  }
+
+  .shine-text {
+    background: linear-gradient(110deg, hsl(var(--foreground)) 35%, hsl(var(--primary)) 50%, hsl(var(--foreground)) 65%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 4.5s linear infinite;
+  }
+  @keyframes shine {
+    to { background-position: -200% 0; }
+  }
+
+  .marquee {
+    display: flex;
+    gap: 3rem;
+    animation: marquee 35s linear infinite;
+    width: max-content;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  .noise {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+  }
+
+  /* Pearlescent rolling shimmer wordmark.
+     Light mode = warm gold/rose; dark mode = silver→purple.
+     Duration and glow are driven by --shimmer-dur / --shimmer-glow / --shimmer-alpha
+     set from JS based on scroll progress. */
+  .pearl-text {
+    background-image: linear-gradient(
+      100deg,
+      hsl(28 70% 45%) 0%,
+      hsl(20 85% 55%) 18%,
+      hsl(340 70% 60%) 36%,
+      hsl(28 90% 65%) 54%,
+      hsl(20 85% 50%) 72%,
+      hsl(340 70% 55%) 100%
+    );
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: pearl-roll var(--shimmer-dur, 6.5s) linear infinite;
+    transform: translateZ(0);
+  }
+  .dark .pearl-text {
+    background-image: linear-gradient(
+      100deg,
+      hsl(220 15% 75%) 0%,
+      hsl(230 30% 90%) 14%,
+      hsl(260 60% 80%) 30%,
+      hsl(220 10% 95%) 46%,
+      hsl(265 70% 75%) 62%,
+      hsl(220 20% 70%) 78%,
+      hsl(255 50% 78%) 100%
+    );
+    background-size: 250% 100%;
+    filter: drop-shadow(0 2px var(--shimmer-glow, 18px) hsl(255 60% 60% / var(--shimmer-alpha, 0.35)));
+    animation: pearl-roll var(--shimmer-dur, 6s) linear infinite;
+  }
+  @keyframes pearl-roll {
+    to { background-position: -250% 0; }
+  }
+
+  /* Swirl icons — duration controlled by --swirl-dur from JS. */
+  .swirl-node {
+    animation: swirl-drift var(--swirl-dur, 22s) linear infinite;
+    will-change: offset-distance;
+  }
+  @keyframes swirl-drift {
+    from { offset-distance: 0%; }
+    to   { offset-distance: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pearl-text, .swirl-node { animation: none !important; }
+    .pearl-text { filter: none !important; }
+  }
+
+}
+
+
+
