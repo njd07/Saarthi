@@ -149,7 +149,7 @@ export function Board({
     ? payload.board
         .sections!.filter((s) => s.type === "image")
         .map((s) => s.payload as string)
-    : payload.board.visual.type === "image" && payload.board.visual.payload
+    : payload.board?.visual?.type === "image" && payload.board.visual.payload
       ? [payload.board.visual.payload]
       : [];
 
@@ -251,7 +251,7 @@ export function Board({
 
 
   const legacyKatex =
-    !hasSections && payload.board.visual.type === "katex" && payload.board.visual.payload
+    !hasSections && payload.board?.visual?.type === "katex" && payload.board.visual.payload
       ? renderKatex(payload.board.visual.payload)
       : "";
 
@@ -290,7 +290,7 @@ export function Board({
               </span>
             )}
           </div>
-          {payload.board.bullets.length > 0 && (
+          {payload.board?.bullets && payload.board.bullets.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {payload.board.bullets.map((b, i) => (
                 <span
@@ -385,7 +385,7 @@ export function Board({
         {!hasSections && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
             <div className="p-6 sm:p-10 space-y-4">
-              {payload.board.bullets.map((b, i) => (
+              {payload.board?.bullets?.map((b, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: -12 }}
@@ -399,7 +399,7 @@ export function Board({
               ))}
             </div>
             <div className="border-t lg:border-t-0 lg:border-l border-border bg-muted/30 min-h-[260px] flex items-center justify-center p-6">
-              {payload.board.visual.type === "image" &&
+              {payload.board?.visual?.type === "image" &&
                 imageMap[payload.board.visual.payload] && (
                   <motion.img
                     src={imageMap[payload.board.visual.payload]}
@@ -409,13 +409,13 @@ export function Board({
                     className="max-h-[420px] w-auto object-contain rounded-lg"
                   />
                 )}
-              {payload.board.visual.type === "katex" && (
+              {payload.board?.visual?.type === "katex" && (
                 <div
                   className="text-3xl sm:text-5xl text-foreground"
                   dangerouslySetInnerHTML={{ __html: legacyKatex }}
                 />
               )}
-              {payload.board.visual.type === "none" && (
+              {(!payload.board?.visual?.type || payload.board.visual.type === "none") && (
                 <div className="text-6xl opacity-20">✦</div>
               )}
             </div>

@@ -15,7 +15,7 @@ tts.post("/", async (c) => {
   // Priority: user's BYO key > server-side env var
   const elevenKey =
     c.req.header("x-elevenlabs-key") || process.env.ELEVENLABS_API_KEY || "";
-  const voiceId = c.req.header("x-voice-id") || "JBFqnCBsd6RMkjVDRZzb"; // George - clear neutral
+  const voiceId = c.req.header("x-voice-id") || "EXAVITQu4vr4xnSDxMaL"; // Bella - clear female multilingual
 
   if (!elevenKey) {
     // No ElevenLabs key available — tell frontend to use browser speechSynthesis

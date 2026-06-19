@@ -45,24 +45,24 @@
 
 ```mermaid
 graph TD
-    subgraph Frontend [Vercel (React + Vite)]
+    subgraph Frontend
         UI[React UI + Tailwind]
         VD[VoiceDock STT]
         Player[Audio Player]
     end
 
-    subgraph Backend [Render (Hono + Node.js)]
+    subgraph Backend
         API[Hono API]
         Auth[JWT Auth]
         RAG[PDF Ingest & Chunking]
     end
 
-    subgraph Database [Neon Postgres]
+    subgraph Database
         PG[(PostgreSQL)]
         VEC[(pgvector)]
     end
 
-    subgraph AI Services
+    subgraph AI_Services
         GEMINI[Google Gemini 2.0]
         OR[OpenRouter Fallback]
         POL[Pollinations.ai Images]

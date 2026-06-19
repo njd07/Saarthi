@@ -17,16 +17,6 @@ image.post("/", async (c) => {
   const encoded = encodeURIComponent(cleanPrompt);
   const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&model=flux`;
 
-  // Verify the URL is reachable (Pollinations returns the image directly)
-  try {
-    const check = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(10000) });
-    if (!check.ok) {
-      return c.json({ error: "Image generation temporarily unavailable" }, 503);
-    }
-  } catch {
-    // Even if HEAD fails, the URL might still work — return it anyway
-  }
-
   return c.json({ url, model: "pollinations/flux" });
 });
 
