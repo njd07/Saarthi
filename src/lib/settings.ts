@@ -8,7 +8,7 @@ export type AppSettings = {
   strictRag: boolean; // if true, ai-chat answers ONLY from uploaded docs when any exist
 };
 
-const KEY = "pathshala.settings.v1";
+const KEY = "saarthi.settings.v1";
 
 const DEFAULTS: AppSettings = {
   openRouterKey: "",

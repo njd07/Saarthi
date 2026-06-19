@@ -3,7 +3,7 @@
 import { openDB, type IDBPDatabase } from "idb";
 import type { BoardPayload } from "./api";
 
-const DB_NAME = "pathshala-cache";
+const DB_NAME = "saarthi-cache";
 const DB_VERSION = 1;
 
 type DBSchema = {

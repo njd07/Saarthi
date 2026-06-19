@@ -167,7 +167,7 @@ export default function Landing() {
             Voice-first · Hinglish · Live on the smart board
           </motion.div>
 
-          <OrbitingWordmark text="PATHSHALA" />
+          <OrbitingWordmark text="SAARTHI" />
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}

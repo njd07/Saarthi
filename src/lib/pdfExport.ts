@@ -69,7 +69,7 @@ export function downloadSessionSummaryPDF(opts: {
     y += 14;
   }
 
-  doc.save(`pathshala-${opts.sessionTitle.replace(/\s+/g, "-")}.pdf`);
+  doc.save(`saarthi-${opts.sessionTitle.replace(/\s+/g, "-")}.pdf`);
 }
 
 export function downloadCSV(rows: StudentRow[], filename: string) {

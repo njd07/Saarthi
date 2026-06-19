@@ -20,45 +20,38 @@ export function VoiceDock({ onTranscript, disabled, label = "Hold to speak (or S
     const duration = startedAtRef.current ? (Date.now() - startedAtRef.current) / 1000 : 0;
     setBusy(true);
 
-    // Explicitly check for SpeechRecognition support first
-    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
     try {
-      // First try backend (if it has Whisper/Groq)
+      // Send audio to backend → Groq Whisper
       const text = await transcribe(blob);
       setPartial(text);
       if (text.trim()) onTranscript(text.trim(), duration);
     } catch (e: any) {
-      console.error("Backend STT failed/unavailable:", e.message || e);
-      
-      // Fallback to browser Web Speech API if backend tells us to or fails
-      if (SpeechRec && e.message === "Use browser speech recognition") {
-        console.log("Falling back to browser Web Speech API...");
+      console.error("STT error:", e.message || e);
+
+      // Fallback: try browser Web Speech API live recording
+      const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRec) {
         try {
           const recognition = new SpeechRec();
           recognition.lang = "hi-IN";
           recognition.interimResults = false;
           recognition.maxAlternatives = 1;
-          
-          await new Promise<void>((resolve, reject) => {
+
+          const result = await new Promise<string>((resolve, reject) => {
             recognition.onresult = (event: any) => {
-              const speechResult = event.results[0][0].transcript;
-              setPartial(speechResult);
-              if (speechResult.trim()) onTranscript(speechResult.trim(), duration);
-              resolve();
+              resolve(event.results[0][0].transcript || "");
             };
-            recognition.onerror = (event: any) => {
-              console.error("Web Speech API error:", event.error);
-              reject(new Error(event.error));
-            };
-            recognition.onend = () => resolve();
-            
-            // Note: Since we already recorded audio, we can't easily pipe it to SpeechRecognition.
-            // But wait, SpeechRecognition listens from the mic live. We shouldn't use `useRecorder` blob for SpeechRecognition.
-            // This logic is a bit flawed because SpeechRecognition listens to the microphone itself!
+            recognition.onerror = (event: any) => reject(new Error(event.error));
+            recognition.onend = () => resolve("");
+            recognition.start();
+            setTimeout(() => { try { recognition.stop(); } catch {} }, 8000);
           });
+          if (result.trim()) {
+            setPartial(result);
+            onTranscript(result.trim(), duration);
+          }
         } catch (speechErr) {
-          console.error("Fallback Web Speech failed:", speechErr);
+          console.error("Browser Speech fallback failed:", speechErr);
         }
       }
     } finally {
@@ -69,10 +62,8 @@ export function VoiceDock({ onTranscript, disabled, label = "Hold to speak (or S
 
   const { recording, start, stop } = useRecorder(handleStop);
 
-  const wrappedStart = () => { 
-    startedAtRef.current = Date.now(); 
-    
-    // Explicit microphone permission check for logging
+  const wrappedStart = () => {
+    startedAtRef.current = Date.now();
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(() => {
         console.log("Microphone permission granted");

@@ -2,8 +2,8 @@ import { createRouter } from "../types.js";
 import { query } from "../db.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AI Chat — Gemini 2.0 Flash (primary) + OpenRouter multi-model fallback
-// Keeps the classroom uninterrupted for 40-50 seconds before showing any error.
+// AI Chat — Gemini (primary) → OpenRouter (secondary) → Groq (tertiary)
+// Unbreakable fallback chain: UI never sees an error.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const chat = createRouter();
@@ -11,16 +11,20 @@ const chat = createRouter();
 const GEMINI_MODELS = ["gemini-2.0-flash"];
 
 const OPENROUTER_MODELS = [
-  "google/gemma-4-31b-it:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "qwen/qwen3-coder:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "nousresearch/hermes-3-llama-3.1-405b:free",
+  "qwen/qwen3-next-80b-a3b-instruct:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
   "openai/gpt-oss-120b:free",
-  "liquid/lfm-2.5-1.2b-instruct:free",
-  "nvidia/nemotron-3-nano-30b-a3b:free",
+  "google/gemma-4-31b-it:free",
+  "poolside/laguna-m.1:free",
+  "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
 ];
 
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
 const PER_MODEL_TIMEOUT_MS = 12000;
-const TOTAL_DEADLINE_MS = 50000; // 50 seconds before giving up
+const TOTAL_DEADLINE_MS = 70000;
 
 // ── System Prompts ──────────────────────────────────────────────────────────
 
@@ -124,7 +128,6 @@ async function callGemini(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
-  // Convert OpenAI-style messages to Gemini format
   const systemInstruction = messages.find((m) => m.role === "system")?.content || "";
   const contents = messages
     .filter((m) => m.role !== "system")
@@ -195,6 +198,41 @@ async function callOpenRouter(
   return { content, model: `openrouter/${model}` };
 }
 
+// ── Groq (tertiary fallback) ────────────────────────────────────────────────
+
+async function callGroq(
+  model: string,
+  messages: { role: string; content: string }[],
+  signal: AbortSignal,
+) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY not set");
+
+  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    }),
+    signal,
+  });
+
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error(`groq ${model} ${r.status}: ${text.slice(0, 200)}`);
+  }
+  const data = await r.json() as any;
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error(`empty content groq ${model}`);
+  return { content, model: `groq/${model}` };
+}
+
 // ── Timeout wrapper ─────────────────────────────────────────────────────────
 
 function withTimeout<T>(
@@ -227,7 +265,6 @@ async function ragSearch(
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return { snippets: "", citations: [] };
 
-    // 1. Embed query
     const er = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
       {
@@ -245,7 +282,6 @@ async function ragSearch(
     const embedding = ed?.embedding?.values;
     if (!embedding) return { snippets: "", citations: [] };
 
-    // 2. Cosine similarity search
     const result = await query(
       `SELECT dc.id, dc.document_id, dc.page, dc.content,
               1 - (dc.embedding <=> $1::vector) as similarity
@@ -258,7 +294,6 @@ async function ragSearch(
 
     if (!result.rows.length) return { snippets: "", citations: [] };
 
-    // 3. Fetch document titles
     const docIds = [...new Set(result.rows.map((r: { document_id: string }) => r.document_id))];
     const titleResult = await query(
       `SELECT id, title FROM documents WHERE id = ANY($1)`,
@@ -324,7 +359,7 @@ chat.post("/", async (c) => {
   const attempts: { model: string; error: string }[] = [];
 
   while (Date.now() < deadline) {
-    // 1. Try Gemini (Google AI Studio direct)
+    // ── 1. Gemini (primary) ──
     for (const model of GEMINI_MODELS) {
       if (Date.now() > deadline) break;
       const controller = new AbortController();
@@ -335,20 +370,14 @@ chat.post("/", async (c) => {
           remaining,
           controller,
         );
-        return c.json({
-          ok: true,
-          model: result.model,
-          content: result.content,
-          attempts,
-          citations,
-        });
+        return c.json({ ok: true, model: result.model, content: result.content, attempts, citations });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         attempts.push({ model: `gemini/${model}`, error: msg });
       }
     }
 
-    // 2. Try OpenRouter fallback chain (free models)
+    // ── 2. OpenRouter (secondary) ──
     if (openRouterKey) {
       for (const model of OPENROUTER_MODELS) {
         if (Date.now() > deadline) break;
@@ -360,27 +389,38 @@ chat.post("/", async (c) => {
             remaining,
             controller,
           );
-          return c.json({
-            ok: true,
-            model: result.model,
-            content: result.content,
-            attempts,
-            citations,
-          });
+          return c.json({ ok: true, model: result.model, content: result.content, attempts, citations });
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
           attempts.push({ model: `openrouter/${model}`, error: msg });
         }
       }
     }
-    
-    // If all models failed in this cycle and we still have time, wait 3 seconds and retry
+
+    // ── 3. Groq (tertiary) ──
+    if (process.env.GROQ_API_KEY) {
+      const controller = new AbortController();
+      try {
+        const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+        const result = await withTimeout(
+          callGroq(GROQ_MODEL, messages, controller.signal),
+          remaining,
+          controller,
+        );
+        return c.json({ ok: true, model: result.model, content: result.content, attempts, citations });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        attempts.push({ model: `groq/${GROQ_MODEL}`, error: msg });
+      }
+    }
+
+    // If all failed this cycle, wait 3s and retry
     if (Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
 
-  // Graceful fallback so the UI doesn't break
+  // Graceful fallback so the UI never breaks
   const fallbackContent = JSON.stringify({
     speech: "Classroom network thoda busy hai. Please ek minute baad try kariye.",
     board: {

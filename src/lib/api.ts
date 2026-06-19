@@ -181,14 +181,12 @@ export async function generateImage(prompt: string): Promise<string | null> {
   if (cached) return cached;
   if (!navigator.onLine) return null;
   try {
-    const r = await authFetch(`/api/image`, {
-      method: "POST",
-      body: JSON.stringify({ prompt }),
-    });
-    if (!r.ok) return null;
-    const data = await r.json();
-    if (data.url) cacheImage(prompt, data.url);
-    return data.url || null;
+    // Build Pollinations URL directly — no backend needed, no rate limits
+    const cleanPrompt = `Clean educational illustration on a white background, no text or words inside the image. Subject: ${prompt}`;
+    const encoded = encodeURIComponent(cleanPrompt);
+    const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&model=flux`;
+    cacheImage(prompt, url);
+    return url;
   } catch {
     return null;
   }
