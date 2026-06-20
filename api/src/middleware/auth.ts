@@ -15,7 +15,7 @@ export async function authMiddleware(c: Context, next: Next) {
     // Insert new user stub. The frontend doesn't need /register anymore.
     const insert = await query(
       "INSERT INTO users (email, password_hash, full_name, clerk_id) VALUES ($1, $2, $3, $4) RETURNING id",
-      ["no-email@clerk.com", "", "Clerk User", auth.userId]
+      [`${auth.userId}@clerk-placeholder.com`, "", "Clerk User", auth.userId]
     );
     internalUserId = insert.rows[0].id;
     // Create profile
