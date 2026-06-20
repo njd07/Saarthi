@@ -45,7 +45,9 @@ export async function askAI(opts: {
   const s = loadSettings();
   try {
     const headers: Record<string, string> = {};
+    if (s.groqKey) headers["x-groq-key"] = s.groqKey;
     if (s.openRouterKey) headers["x-openrouter-key"] = s.openRouterKey;
+    if (s.geminiKey) headers["x-gemini-key"] = s.geminiKey;
 
     const r = await authFetch(`/api/chat`, {
       method: "POST",
@@ -73,7 +75,9 @@ export async function askAI(opts: {
 export async function dictate(text: string): Promise<DictatePayload> {
   const s = loadSettings();
   const headers: Record<string, string> = {};
+  if (s.groqKey) headers["x-groq-key"] = s.groqKey;
   if (s.openRouterKey) headers["x-openrouter-key"] = s.openRouterKey;
+  if (s.geminiKey) headers["x-gemini-key"] = s.geminiKey;
 
   const r = await authFetch(`/api/chat`, {
     method: "POST",

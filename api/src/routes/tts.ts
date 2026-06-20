@@ -18,13 +18,15 @@ tts.post("/", async (c) => {
     const edgeTts = new MsEdgeTTS();
     await edgeTts.setMetadata("hi-IN-SwaraNeural", OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
 
-    const readable = edgeTts.toStream(text);
+    const { audioStream } = edgeTts.toStream(text);
 
     // Collect chunks into a buffer
     const chunks: Buffer[] = [];
-    for await (const chunk of readable) {
-      chunks.push(Buffer.from(chunk));
-    }
+    await new Promise((resolve, reject) => {
+      audioStream.on("data", (chunk: any) => chunks.push(Buffer.from(chunk)));
+      audioStream.on("end", () => resolve(null));
+      audioStream.on("error", reject);
+    });
     const audioBuffer = Buffer.concat(chunks);
 
     if (audioBuffer.length === 0) {

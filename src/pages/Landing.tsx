@@ -2,10 +2,11 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useSpring, useTransform, useMotionValue, useMotionTemplate } from "framer-motion";
 import { useEffect, useRef } from "react";
 import Lenis from "lenis";
-import { ArrowRight, Mic, Sparkles, Languages, GraduationCap, Zap, ShieldCheck } from "lucide-react";
+import { ArrowRight, Mic, Sparkles, Languages, GraduationCap, Zap, ShieldCheck, BookOpen } from "lucide-react";
 
 import { OrbitingWordmark } from "@/components/OrbitingWordmark";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* ---------- Spotlight card ---------- */
 function SpotlightCard({
@@ -114,6 +115,8 @@ export default function Landing() {
   const heroY = useTransform(heroP, [0, 1], [0, 140]);
   const heroOpacity = useTransform(heroP, [0, 0.8], [1, 0]);
 
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* scroll progress */}
@@ -136,10 +139,10 @@ export default function Landing() {
             <a href="#features" className="hidden sm:inline-block text-[13px] px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground transition">Features</a>
             <a href="#how" className="hidden sm:inline-block text-[13px] px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground transition">How it works</a>
             <Link
-              to="/auth"
+              to={user ? "/app" : "/auth"}
               className="text-[13px] px-3.5 py-1.5 rounded-md bg-foreground text-background hover:opacity-90 transition"
             >
-              Sign in
+              {user ? "Go to Classroom" : "Sign In"}
             </Link>
           </div>
         </div>
@@ -196,8 +199,8 @@ export default function Landing() {
             transition={{ delay: 0.85, duration: 0.7 }}
             className="relative z-10 mt-10 flex flex-col sm:flex-row gap-3"
           >
-            <MagneticLink to="/auth">
-              Start teaching <ArrowRight className="h-4 w-4" />
+            <MagneticLink to={user ? "/app" : "/auth"}>
+              {user ? "Enter Classroom" : "Start teaching"} <ArrowRight className="h-4 w-4" />
             </MagneticLink>
             <MagneticLink to="#features" variant="ghost">
               See features
@@ -265,7 +268,7 @@ export default function Landing() {
             {[
               { icon: Sparkles, title: "Live Concept Simplification", desc: "Bolo: 'Photosynthesis samjhao class 7 ke liye.' Mil jata hai Hinglish explanation, bullets, aur ek illustration — instant." },
               { icon: GraduationCap, title: "Voice-Triggered Quizzing", desc: "Bolo: '5 questions on fractions, easy.' Har question audio mein bolta hai, board pe dikhaata hai, awaaz se jawab leta hai." },
-              { icon: Languages, title: "Hands-Free Activity Guide", desc: "Bolo: 'Science activity on air pressure, 10 minutes.' Step-by-step instructions, countdown timer, 'agla' kehne par next step." },
+              { icon: BookOpen, title: "Bring Your Own Textbook", desc: "Upload NCERT PDFs. Saarthi reads the chapter and answers strictly from your uploaded syllabus." },
             ].map((f, i) => (
               <SpotlightCard key={f.title} {...f} index={i} />
             ))}

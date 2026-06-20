@@ -123,9 +123,9 @@ function buildSystem(mode: string) {
 async function callGemini(
   model: string,
   messages: { role: string; content: string }[],
+  apiKey: string,
   signal: AbortSignal,
 ) {
-  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
   const systemInstruction = messages.find((m) => m.role === "system")?.content || "";
@@ -203,9 +203,9 @@ async function callOpenRouter(
 async function callGroq(
   model: string,
   messages: { role: string; content: string }[],
+  apiKey: string,
   signal: AbortSignal,
 ) {
-  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error("GROQ_API_KEY not set");
 
   const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -329,8 +329,9 @@ chat.post("/", async (c) => {
     return c.json({ error: "userText required" }, 400);
   }
 
-  const openRouterKey =
-    c.req.header("x-openrouter-key") || process.env.OPENROUTER_API_KEY || "";
+  const openRouterKey = c.req.header("x-openrouter-key") || process.env.OPENROUTER_API_KEY || "";
+  const groqKey = c.req.header("x-groq-key") || process.env.GROQ_API_KEY || "";
+  const geminiKey = c.req.header("x-gemini-key") || process.env.GEMINI_API_KEY || "";
 
   let systemPrompt = buildSystem(mode);
   if (mode === "quiz" && quizMeta) {
@@ -360,12 +361,12 @@ chat.post("/", async (c) => {
 
   while (Date.now() < deadline) {
     // ── 1. Groq (primary — fast, reliable) ──
-    if (process.env.GROQ_API_KEY) {
+    if (groqKey) {
       const controller = new AbortController();
       try {
         const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
         const result = await withTimeout(
-          callGroq(GROQ_MODEL, messages, controller.signal),
+          callGroq(GROQ_MODEL, messages, groqKey, controller.signal),
           remaining,
           controller,
         );
@@ -397,20 +398,22 @@ chat.post("/", async (c) => {
     }
 
     // ── 3. Gemini (tertiary — rate-limited free tier) ──
-    for (const model of GEMINI_MODELS) {
-      if (Date.now() > deadline) break;
-      const controller = new AbortController();
-      try {
-        const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
-        const result = await withTimeout(
-          callGemini(model, messages, controller.signal),
-          remaining,
-          controller,
-        );
-        return c.json({ ok: true, model: result.model, content: result.content, attempts, citations });
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        attempts.push({ model: `gemini/${model}`, error: msg });
+    if (geminiKey) {
+      for (const model of GEMINI_MODELS) {
+        if (Date.now() > deadline) break;
+        const controller = new AbortController();
+        try {
+          const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+          const result = await withTimeout(
+            callGemini(model, messages, geminiKey, controller.signal),
+            remaining,
+            controller,
+          );
+          return c.json({ ok: true, model: result.model, content: result.content, attempts, citations });
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          attempts.push({ model: `gemini/${model}`, error: msg });
+        }
       }
     }
 

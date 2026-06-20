@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export default function Auth() {
   const { user, loading, signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -36,6 +37,7 @@ export default function Auth() {
     setIsSubmitting(true);
     try {
       await signIn(loginEmail, loginPassword);
+      navigate("/app", { replace: true });
     } catch (e: any) {
       toast({ title: "Login failed", description: e.message, variant: "destructive" });
     } finally {
@@ -53,6 +55,7 @@ export default function Auth() {
     try {
       await signUp(signupEmail, signupPassword, signupName);
       toast({ title: "Account created", description: "You are now logged in." });
+      navigate("/app", { replace: true });
     } catch (e: any) {
       toast({ title: "Signup failed", description: e.message, variant: "destructive" });
     } finally {
@@ -71,6 +74,13 @@ export default function Auth() {
           <span className="font-semibold tracking-tight">Saarthi</span>
         </Link>
         <p className="text-[13px] text-muted-foreground">Voice-first Hinglish teaching co-pilot</p>
+        <div className="bg-destructive/10 text-destructive text-xs p-3 rounded-lg flex items-start gap-2">
+          <span className="text-base leading-none">🚨</span>
+          <p>
+            If you are using this for the first time, it can take up to 50 seconds to load up the backend because we are using a free backend service.
+            Google Auth is coming in a future update!
+          </p>
+        </div>
 
         <Tabs defaultValue="login">
           <TabsList className="grid w-full grid-cols-2">

@@ -126,8 +126,8 @@ export function Board({
 }: {
   payload: BoardPayload;
   audio?: HTMLAudioElement | null;
-  // Returns the prepared (paused) audio element once ready.
   onPageSpeech?: (text: string, pageIdx: number) => Promise<HTMLAudioElement | null>;
+  onOptionSelect?: (text: string) => void;
 }) {
   const hasSections = !!payload.board.sections?.length;
   const pages = useMemo(
@@ -171,22 +171,8 @@ export function Board({
       if (cancel) return;
       const map: Record<string, string> = {};
       entries.forEach(([p, u]) => (map[p] = u || ""));
-      const loaders = entries
-        .filter(([, u]) => !!u)
-        .map(
-          ([, u]) =>
-            new Promise<void>((res) => {
-              const img = new Image();
-              img.onload = () => res();
-              img.onerror = () => res();
-              img.src = u!;
-            }),
-        );
-      Promise.all(loaders).then(() => {
-        if (cancel) return;
-        setImageMap(map);
-        setReady(true);
-      });
+      setImageMap(map);
+      setReady(true);
     });
     return () => {
       cancel = true;
@@ -385,18 +371,23 @@ export function Board({
         {!hasSections && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
             <div className="p-6 sm:p-10 space-y-4">
-              {payload.board?.bullets?.map((b, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + i * 0.08 }}
-                  className="flex gap-3 text-lg sm:text-2xl text-foreground/90 leading-snug"
-                >
-                  <Sparkles className="h-5 w-5 text-primary shrink-0 mt-1" />
-                  <span>{b}</span>
-                </motion.div>
-              ))}
+              {payload.board?.bullets?.map((b, i) => {
+                const isClickable = !!onOptionSelect;
+                return (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + i * 0.08 }}
+                    onClick={() => onOptionSelect && onOptionSelect(b)}
+                    className={`w-full flex text-left gap-3 text-lg sm:text-2xl text-foreground/90 leading-snug ${isClickable ? "p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer shadow-sm transition-colors" : ""}`}
+                    disabled={!isClickable}
+                  >
+                    <Sparkles className="h-5 w-5 text-primary shrink-0 mt-1" />
+                    <span>{b}</span>
+                  </motion.button>
+                );
+              })}
             </div>
             <div className="border-t lg:border-t-0 lg:border-l border-border bg-muted/30 min-h-[260px] flex items-center justify-center p-6">
               {payload.board?.visual?.type === "image" &&

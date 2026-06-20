@@ -37,29 +37,12 @@ export default function Settings() {
 
       <main className="max-w-3xl mx-auto px-4 py-10 space-y-10">
         <section>
-          <h2 className="text-xl font-semibold mb-1">Voice</h2>
+          <h2 className="text-xl font-semibold mb-1">Playback Settings</h2>
           <p className="text-sm text-muted-foreground mb-5">
-            Default uses Saarthi's built-in voice. Add your ElevenLabs key for higher-quality Hindi prosody.
+            Adjust the speed of the teacher's voice.
           </p>
 
           <div className="space-y-4">
-            <div>
-              <Label className="text-xs">Built-in voice (Browser TTS)</Label>
-              <select
-                value={s.voice}
-                onChange={(e) => update("voice", e.target.value)}
-                className="mt-1 w-full h-10 border border-input bg-background rounded-md px-3 text-sm"
-              >
-                {["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"].map(
-                  (v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ),
-                )}
-              </select>
-            </div>
-
             <div>
               <Label className="text-xs">Speech rate ({s.speechRate.toFixed(2)}x)</Label>
               <input
@@ -72,29 +55,49 @@ export default function Settings() {
                 className="w-full mt-2"
               />
             </div>
-
-
           </div>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-1">AI fallback</h2>
+          <h2 className="text-xl font-semibold mb-1">Custom API Keys (Optional)</h2>
           <p className="text-sm text-muted-foreground mb-5">
-            Saarthi tries 5 built-in models in sequence. Optionally add your own OpenRouter key — it'll be
-            used as the final fallback so the class is never stuck.
+            Saarthi uses its own built-in AI models by default. You can override them by providing your own API keys. Keys are stored locally in your browser.
           </p>
-          <Label htmlFor="or" className="text-xs">OpenRouter API key (optional)</Label>
-          <Input
-            id="or"
-            type="password"
-            placeholder="sk-or-v1-..."
-            value={s.openRouterKey}
-            onChange={(e) => update("openRouterKey", e.target.value)}
-            className="mt-1"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Stored only in your browser. Get a free key from openrouter.ai/keys.
-          </p>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="groq" className="text-xs">Groq API Key (Primary)</Label>
+              <Input
+                id="groq"
+                type="password"
+                placeholder="gsk_..."
+                value={s.groqKey}
+                onChange={(e) => update("groqKey", e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="or" className="text-xs">OpenRouter API Key (Secondary)</Label>
+              <Input
+                id="or"
+                type="password"
+                placeholder="sk-or-v1-..."
+                value={s.openRouterKey}
+                onChange={(e) => update("openRouterKey", e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="gemini" className="text-xs">Google Gemini API Key (Tertiary)</Label>
+              <Input
+                id="gemini"
+                type="password"
+                placeholder="AIzaSy..."
+                value={s.geminiKey}
+                onChange={(e) => update("geminiKey", e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
         </section>
 
         <Button onClick={onSave} className="gap-2">

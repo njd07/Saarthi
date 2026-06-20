@@ -1,7 +1,8 @@
 // Client-side settings storage for voice preferences.
 export type AppSettings = {
+  groqKey: string;
   openRouterKey: string;
-  voice: string;
+  geminiKey: string;
   speechRate: number;
   strictRag: boolean;
 };
@@ -9,8 +10,9 @@ export type AppSettings = {
 const KEY = "saarthi.settings.v1";
 
 const DEFAULTS: AppSettings = {
+  groqKey: "",
   openRouterKey: "",
-  voice: "hi-IN-SwaraNeural",
+  geminiKey: "",
   speechRate: 1,
   strictRag: false,
 };

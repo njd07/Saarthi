@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Sparkles, Trophy, Mic2, Settings as SettingsIcon, LogOut, Moon, Sun, Loader2, BookOpen, BarChart3, Shield, Trash2, Volume2, VolumeX,
+  Sparkles, Trophy, Mic2, Settings as SettingsIcon, LogOut, Moon, Sun, Loader2, BookOpen, BarChart3, Shield, Trash2, Volume2, VolumeX, ChevronRight
 } from "lucide-react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import Lenis from "lenis";
@@ -48,6 +48,7 @@ export default function AppHome() {
   const [quizN, setQuizN] = useState(0);
   const [quizTotal] = useState(5);
   const [waitingAnswer, setWaitingAnswer] = useState(false);
+  const [quizTopic, setQuizTopic] = useState("");
 
   useEffect(() => {
     return () => audioRef.current?.pause();
@@ -150,6 +151,7 @@ export default function AppHome() {
     setQuizScore({ correct: 0, total: 0 });
     setQuizN(1);
     setWaitingAnswer(false);
+    setQuizTopic(topic);
     await runAsk(`Topic: ${topic}. Generate question 1 of ${quizTotal}.`, {
       quizMeta: { n: 1, total: quizTotal },
     });
@@ -175,11 +177,7 @@ export default function AppHome() {
       : `Galat. Sahi jawab tha ${payload.quiz.answer}. ${payload.quiz.explanation}`;
     stopAudio();
     async function onFeedbackEnd() {
-      if (quizN < quizTotal) {
-        const next = quizN + 1;
-        setQuizN(next);
-        await runAsk(`Next question, number ${next} of ${quizTotal}.`, { quizMeta: { n: next, total: quizTotal } });
-      } else {
+      if (quizN >= quizTotal) {
         const finalLine = `Quiz khatam! Aapka score: ${newScore.correct} out of ${quizTotal}.`;
         stopAudio();
         if (!isMuted) {
@@ -230,7 +228,7 @@ export default function AppHome() {
     <div className="min-h-screen bg-background text-foreground pb-40">
       <header className="sticky top-0 z-40 backdrop-blur bg-background/75 border-b border-border">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
-          <Link to="/app" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-2 group">
             <img src="/logo.png" className="h-[22px] w-[22px] transition-transform group-hover:rotate-12" alt="Saarthi Logo" />
             <span className="font-semibold tracking-[0.18em] uppercase text-[13px]">Saarthi</span>
           </Link>
@@ -356,12 +354,22 @@ export default function AppHome() {
         </form>
 
         {mode === "quiz" && payload && (
-          <div className="mb-4 flex items-center justify-between text-sm">
+          <div className="mb-4 flex flex-col sm:flex-row items-center justify-between text-sm gap-3">
             <span className="text-muted-foreground">
               Q {quizN} of {quizTotal} · Score {quizScore.correct}/{quizScore.total}
               {activeStudent && <span className="ml-2 text-primary">· {activeStudent.name}</span>}
             </span>
-            {waitingAnswer && <span className="px-2 py-1 rounded bg-primary/10 text-primary text-xs animate-pulse">Listening for answer…</span>}
+            <div className="flex items-center gap-2">
+              {waitingAnswer && <span className="px-2 py-1 rounded bg-primary/10 text-primary text-xs animate-pulse">Listening for answer…</span>}
+              {!waitingAnswer && quizN < quizTotal && (
+                <Button size="sm" onClick={() => {
+                  const next = quizN + 1;
+                  setQuizN(next);
+                  setWaitingAnswer(false);
+                  runAsk(`Topic: ${quizTopic}. Next question, number ${next} of ${quizTotal}. Make sure it is a different question than before.`, { quizMeta: { n: next, total: quizTotal } });
+                }}>Next Question <ChevronRight className="h-4 w-4 ml-1"/></Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -391,6 +399,7 @@ export default function AppHome() {
             <Board
               payload={payload}
               audio={audioEl}
+              onOptionSelect={mode === "quiz" && waitingAnswer ? (text) => gradeQuizAnswer(text) : undefined}
               onPageSpeech={async (text) => {
                 stopAudio();
                 if (isMuted) return null;
