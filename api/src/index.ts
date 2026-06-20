@@ -87,6 +87,12 @@ app.route("/api/stt", sttRoutes);
 app.route("/api/ingest", ingestRoutes);
 app.route("/api", dataRoutes);
 
+// ── Global Error Handler ────────────────────────────────────────────────────
+app.onError((err, c) => {
+  console.error("Unhandled error:", err);
+  return c.json({ ok: false, error: err.message || "Internal Server Error" }, 500);
+});
+
 // ── Start server ────────────────────────────────────────────────────────────
 const port = parseInt(process.env.PORT || "3001", 10);
 

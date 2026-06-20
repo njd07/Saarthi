@@ -31,7 +31,7 @@ export default function Auth() {
       <div className="mb-6 max-w-md w-full bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs p-3 rounded-lg flex items-start gap-2 border border-amber-500/20">
         <span className="text-base leading-none">⏳</span>
         <p>
-          If you are using it for the first time then please wait, as the backend takes around 10-20 seconds to load for the first time.
+          Please cooperate if you are logging in for the first time — You can continue with log-in/sign-up, but since we are using our backend on free services, it might take 10-15 seconds to wake up on the first request. Rest assured, everything will run smoothly after that!
         </p>
       </div>
 

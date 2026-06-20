@@ -195,6 +195,69 @@ data.delete("/documents/:id", async (c) => {
   return c.json({ ok: true });
 });
 
+data.post("/documents/:id/summarize", async (c) => {
+  const userId = c.get("userId") as string;
+  const id = c.req.param("id");
+
+  const docCheck = await query(
+    "SELECT id, title, status FROM documents WHERE id = $1 AND teacher_id = $2",
+    [id, userId]
+  );
+  if (!docCheck.rows.length) {
+    return c.json({ error: "Document not found" }, 404);
+  }
+  if (docCheck.rows[0].status !== "ready") {
+    return c.json({ error: "Document is not ready yet. Please wait for ingestion to complete." }, 400);
+  }
+
+  const result = await query(
+    "SELECT content FROM doc_chunks WHERE document_id = $1 AND teacher_id = $2 ORDER BY page, id LIMIT 25",
+    [id, userId]
+  );
+  if (!result.rows.length) {
+    return c.json({ error: "No processed text chunks found for this document." }, 400);
+  }
+
+  const textToSummarize = result.rows.map((r: { content: string }) => r.content).join("\n\n");
+  const groqKey = c.req.header("x-groq-key") || process.env.GROQ_API_KEY || "";
+  if (!groqKey) {
+    return c.json({ error: "Groq API Key is not configured. Please add it in Settings." }, 400);
+  }
+
+  const systemPrompt = `You are Saarthi, a friendly classroom co-pilot.
+Summarize the textbook content below in clear, engaging Hinglish (Hindi written using the English alphabet).
+Write it point-wise as if a teacher is explaining the core points of the chapter to Haryana school students.
+You MUST output the answer ONLY as a list of bullet points explaining the most important concepts. Keep it concise. Do NOT use markdown.`;
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: textToSummarize.slice(0, 15000) }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Groq API returned status ${response.status}: ${errText}`);
+    }
+
+    const dataRes = await response.json() as any;
+    const content = dataRes.choices?.[0]?.message?.content || "";
+    return c.json({ ok: true, content });
+  } catch (e: any) {
+    return c.json({ error: e.message || "Failed to generate summary" }, 500);
+  }
+});
+
 // ── Admin stats ──────────────────────────────────────────────────────────────
 
 data.get("/admin/stats", async (c) => {

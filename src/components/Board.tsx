@@ -32,6 +32,7 @@ const ICON: Record<string, typeof BookOpen> = {
   katex: Sigma,
   examples: Lightbulb,
   remember: AlertCircle,
+  flowchart: Sparkles,
 };
 
 function SectionView({
@@ -87,6 +88,23 @@ function SectionView({
           dangerouslySetInnerHTML={{ __html: renderKatex(s.payload) }}
         />
       )}
+      {s.type === "flowchart" && "steps" in s && s.steps && (
+        <div className="flex flex-col md:flex-row items-center justify-center gap-3 p-4 bg-muted/20 rounded-xl border border-border mt-2 overflow-x-auto">
+          {s.steps.map((step, idx) => (
+            <div key={idx} className="flex flex-col md:flex-row items-center gap-3 shrink-0">
+              <div className="px-4 py-3 rounded-lg bg-card border border-primary/20 shadow-sm text-center font-medium max-w-[200px]">
+                <div className="text-xs text-primary/70 font-semibold uppercase mb-1">Step {idx + 1}</div>
+                <div className="text-sm text-foreground">{step}</div>
+              </div>
+              {idx < s.steps.length - 1 && (
+                <div className="text-primary font-bold text-xl transform rotate-90 md:rotate-0">
+                  ➜
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -103,8 +121,8 @@ function groupIntoPages(sections: BoardSection[]): BoardSection[][] {
     }
   };
   for (const s of sections) {
-    // Images and katex get their own page (visual-first).
-    if (s.type === "image" || s.type === "katex") {
+    // Images, katex, and flowchart get their own page (visual-first).
+    if (s.type === "image" || s.type === "katex" || s.type === "flowchart") {
       flush();
       pages.push([s]);
       continue;
@@ -277,7 +295,12 @@ export function Board({
               </span>
             )}
           </div>
-          {payload.board?.bullets && payload.board.bullets.length > 0 && (
+          {payload.board?.question && (
+            <div className="mt-4 text-xl sm:text-2xl text-foreground/90 font-medium leading-relaxed">
+              {payload.board.question}
+            </div>
+          )}
+          {!payload.quiz && payload.board?.bullets && payload.board.bullets.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {payload.board.bullets.map((b, i) => (
                 <span
@@ -370,47 +393,51 @@ export function Board({
 
         {/* Legacy single-panel (quiz / activity / fallback) */}
         {!hasSections && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-            <div className="p-6 sm:p-10 space-y-4">
-              {payload.board?.bullets?.map((b, i) => {
-                const isClickable = !!onOptionSelect;
-                return (
-                  <motion.button
-                    key={i}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + i * 0.08 }}
-                    onClick={() => onOptionSelect && onOptionSelect(b)}
-                    className={`w-full flex text-left gap-3 text-lg sm:text-2xl text-foreground/90 leading-snug ${isClickable ? "p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer shadow-sm transition-colors" : ""}`}
-                    disabled={!isClickable}
-                  >
-                    <Sparkles className="h-5 w-5 text-primary shrink-0 mt-1" />
-                    <span>{b}</span>
-                  </motion.button>
-                );
-              })}
-            </div>
-            <div className="border-t lg:border-t-0 lg:border-l border-border bg-muted/30 min-h-[260px] flex items-center justify-center p-6">
-              {payload.board?.visual?.type === "image" &&
-                imageMap[payload.board.visual.payload] && (
-                  <motion.img
-                    src={imageMap[payload.board.visual.payload]}
-                    alt={payload.board.title}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="max-h-[420px] w-auto object-contain rounded-lg"
+          <div className={payload.quiz ? "flex flex-col gap-0" : "grid grid-cols-1 lg:grid-cols-2 gap-0"}>
+            {payload.board?.bullets && payload.board.bullets.length > 0 && (
+              <div className={payload.quiz ? "p-6 sm:p-10 space-y-3" : "p-6 sm:p-10 space-y-4"}>
+                {payload.board.bullets.map((b, i) => {
+                  const isClickable = !!onOptionSelect;
+                  return (
+                    <motion.button
+                      key={i}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.08 }}
+                      onClick={() => onOptionSelect && onOptionSelect(b)}
+                      className={`w-full flex text-left gap-3 text-lg sm:text-xl text-foreground/90 leading-snug ${isClickable ? "p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer shadow-sm transition-colors" : ""}`}
+                      disabled={!isClickable}
+                    >
+                      <Sparkles className="h-5 w-5 text-primary shrink-0 mt-1" />
+                      <span>{b}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+            {!payload.quiz && (
+              <div className="border-t lg:border-t-0 lg:border-l border-border bg-muted/30 min-h-[260px] flex items-center justify-center p-6">
+                {payload.board?.visual?.type === "image" &&
+                  imageMap[payload.board.visual.payload] && (
+                    <motion.img
+                      src={imageMap[payload.board.visual.payload]}
+                      alt={payload.board.title}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="max-h-[420px] w-auto object-contain rounded-lg"
+                    />
+                  )}
+                {payload.board?.visual?.type === "katex" && (
+                  <div
+                    className="text-3xl sm:text-5xl text-foreground"
+                    dangerouslySetInnerHTML={{ __html: legacyKatex }}
                   />
                 )}
-              {payload.board?.visual?.type === "katex" && (
-                <div
-                  className="text-3xl sm:text-5xl text-foreground"
-                  dangerouslySetInnerHTML={{ __html: legacyKatex }}
-                />
-              )}
-              {(!payload.board?.visual?.type || payload.board.visual.type === "none") && (
-                <div className="text-6xl opacity-20">✦</div>
-              )}
-            </div>
+                {(!payload.board?.visual?.type || payload.board.visual.type === "none") && (
+                  <div className="text-6xl opacity-20">✦</div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </motion.div>

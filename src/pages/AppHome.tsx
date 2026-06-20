@@ -44,11 +44,15 @@ export default function AppHome() {
   const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
 
   // Quiz state
-  const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 });
+  const [quizScore, setQuizScore] = useState<number>(0);
   const [quizN, setQuizN] = useState(0);
   const [quizTotal] = useState(5);
   const [waitingAnswer, setWaitingAnswer] = useState(false);
   const [quizTopic, setQuizTopic] = useState("");
+  const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
+  const [showQuizSummary, setShowQuizSummary] = useState(false);
+  const [quizSummaryFeedback, setQuizSummaryFeedback] = useState("");
+  const [gradingLoading, setGradingLoading] = useState(false);
 
   useEffect(() => {
     return () => audioRef.current?.pause();
@@ -122,6 +126,9 @@ export default function AppHome() {
         mode, userText, quizMeta: opts?.quizMeta, useRag: hasDocs, strictRag,
       });
       setPayload(p);
+      if (mode === "quiz" && p.board?.question) {
+        setAskedQuestions((prev) => [...prev, p.board.question!]);
+      }
       setDictateOut(null);
       setModelUsed(offline ? "offline cache" : model);
       logInteraction({
@@ -148,53 +155,136 @@ export default function AppHome() {
   }
 
   async function startQuiz(topic: string) {
-    setQuizScore({ correct: 0, total: 0 });
+    setQuizScore(0);
     setQuizN(1);
     setWaitingAnswer(false);
     setQuizTopic(topic);
+    setAskedQuestions([]);
+    setShowQuizSummary(false);
+    setQuizSummaryFeedback("");
     await runAsk(`Topic: ${topic}. Generate question 1 of ${quizTotal}.`, {
       quizMeta: { n: 1, total: quizTotal },
     });
   }
 
-  async function gradeQuizAnswer(spoken: string) {
+  async function gradeQuizAnswer(userAnswerText: string) {
     if (!payload?.quiz) return;
     setWaitingAnswer(false);
-    const said = spoken.toUpperCase().match(/\b[ABCD]\b/)?.[0] || "";
-    const correct = said === payload.quiz.answer.toUpperCase();
-    const newScore = {
-      correct: quizScore.correct + (correct ? 1 : 0),
-      total: quizScore.total + 1,
-    };
-    setQuizScore(newScore);
-    logQuizAttempt({
-      sessionId, studentId: activeStudent?.id ?? null,
-      question: payload.board.title, chosen: said || spoken,
-      correctAnswer: payload.quiz.answer, isCorrect: correct,
-    });
-    const fb = correct
-      ? `Bilkul sahi! ${payload.quiz.explanation}`
-      : `Galat. Sahi jawab tha ${payload.quiz.answer}. ${payload.quiz.explanation}`;
     stopAudio();
-    async function onFeedbackEnd() {
-      if (quizN >= quizTotal) {
-        const finalLine = `Quiz khatam! Aapka score: ${newScore.correct} out of ${quizTotal}.`;
-        stopAudio();
-        if (!isMuted) {
-          const fa = (await speak(finalLine)) || null;
-          audioRef.current = fa; setAudioEl(fa);
-        }
+
+    const isMCQ = payload.quiz.type !== "text";
+    const saidOption = userAnswerText.trim().toUpperCase();
+    const isOptionSelected = ["A", "B", "C", "D"].includes(saidOption) ||
+      (saidOption.length === 1 && saidOption >= "A" && saidOption <= "D") ||
+      (userAnswerText.toUpperCase().match(/^OPTION\s*[A-D]$/)) ||
+      (userAnswerText.match(/^[A-D][\)\.\s]/i)) ||
+      (payload.board.bullets && payload.board.bullets.includes(userAnswerText));
+
+    let isOptionSelection = false;
+    let chosenOption = "";
+    if (isOptionSelected) {
+      isOptionSelection = true;
+      chosenOption = (userAnswerText.match(/\b[A-D]\b/i)?.[0] || saidOption[0] || "").toUpperCase();
+    }
+
+    let earnedPoints = 0;
+    let feedbackText = "";
+
+    async function playFeedbackAndAdvance(fb: string, earned: number) {
+      const finalScore = quizScore + earned;
+      setQuizScore(finalScore);
+
+      logQuizAttempt({
+        sessionId,
+        studentId: activeStudent?.id ?? null,
+        question: payload.board.title,
+        chosen: chosenOption || userAnswerText,
+        correctAnswer: payload.quiz.answer || "Text Answer",
+        isCorrect: earned > 0,
+      });
+
+      const isLastQuestion = quizN >= quizTotal;
+
+      if (isLastQuestion) {
+        setGradingLoading(true);
+        setShowQuizSummary(true);
+        authFetch("/api/chat/quiz-summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic: quizTopic,
+            score: finalScore,
+            maxScore: quizTotal * 20
+          })
+        }).then(async r => {
+          const d = await r.json();
+          if (r.ok && d.ok) {
+            setQuizSummaryFeedback(d.content);
+          } else {
+            throw new Error("fail");
+          }
+        }).catch(() => {
+          setQuizSummaryFeedback(
+            finalScore > 40
+              ? "Shabaash! Aapne bahut achha kiya. Keep learning and practicing!"
+              : "Koi baat nahi, agli baar aur mehnat karenge!"
+          );
+        }).finally(() => {
+          setGradingLoading(false);
+        });
+      }
+
+      async function onFeedbackEnd() {}
+
+      if (isMuted) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await onFeedbackEnd();
+        return;
+      }
+      const a = await speak(fb);
+      if (a) {
+        audioRef.current = a;
+        setAudioEl(a);
+        a.onended = onFeedbackEnd;
+      } else {
+        await onFeedbackEnd();
       }
     }
-    if (isMuted) {
-      await new Promise((r) => setTimeout(r, 1200));
-      await onFeedbackEnd();
-      return;
-    }
-    const a = await speak(fb);
-    if (a) {
-      audioRef.current = a; setAudioEl(a);
-      a.onended = onFeedbackEnd;
+
+    if (isMCQ && isOptionSelection) {
+      const correct = chosenOption === payload.quiz.answer.toUpperCase();
+      earnedPoints = correct ? 20 : 0;
+      feedbackText = correct
+        ? `Bilkul sahi! ${payload.quiz.explanation}`
+        : `Galat. Sahi jawab tha ${payload.quiz.answer}. ${payload.quiz.explanation}`;
+      await playFeedbackAndAdvance(feedbackText, earnedPoints);
+    } else {
+      // Custom text evaluation
+      setGradingLoading(true);
+      try {
+        const r = await authFetch("/api/chat/grade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: payload.board.question || payload.board.title,
+            userAnswer: userAnswerText
+          })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || "Grading failed");
+
+        const grading = JSON.parse(d.content);
+        earnedPoints = Number(grading.score ?? 0);
+        feedbackText = grading.explanation;
+        await playFeedbackAndAdvance(feedbackText, earnedPoints);
+      } catch (e: any) {
+        toast.error("Grading failed, giving default score: 10/20");
+        earnedPoints = 10;
+        feedbackText = "Aapka answer evaluate nahi ho paya network issue ki wajah se. Standard score 10 points diya gaya hai.";
+        await playFeedbackAndAdvance(feedbackText, earnedPoints);
+      } finally {
+        setGradingLoading(false);
+      }
     }
   }
 
@@ -341,22 +431,27 @@ export default function AppHome() {
           <Input
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
+            disabled={gradingLoading}
             placeholder={
               mode === "quiz"
-                ? waitingAnswer ? "Type A, B, C or D…" : "Quiz topic"
+                ? waitingAnswer
+                  ? payload?.quiz?.type === "text"
+                    ? "Type your detailed answer here..."
+                    : "Type A, B, C, D or a custom answer..."
+                  : "Type a topic to start the quiz..."
                 : mode === "dictate" ? "Type or speak any Hinglish sentence" : "Or type a question…"
             }
             className="flex-1"
           />
-          <Button type="submit" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+          <Button type="submit" disabled={loading || gradingLoading}>
+            {loading || gradingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
           </Button>
         </form>
 
         {mode === "quiz" && payload && (
           <div className="mb-4 flex flex-col sm:flex-row items-center justify-between text-sm gap-3">
             <span className="text-muted-foreground">
-              Q {quizN} of {quizTotal} · Score {quizScore.correct}/{quizScore.total}
+              Q {quizN} of {quizTotal} · Score {quizScore} / 100
               {activeStudent && <span className="ml-2 text-primary">· {activeStudent.name}</span>}
             </span>
             <div className="flex items-center gap-2">
@@ -366,7 +461,7 @@ export default function AppHome() {
                   const next = quizN + 1;
                   setQuizN(next);
                   setWaitingAnswer(false);
-                  runAsk(`Topic: ${quizTopic}. Next question, number ${next} of ${quizTotal}. Make sure it is a different question than before.`, { quizMeta: { n: next, total: quizTotal } });
+                  runAsk(`Topic: ${quizTopic}. Next question, number ${next} of ${quizTotal}. Make sure it is a different question than these: ${askedQuestions.join("; ")}`, { quizMeta: { n: next, total: quizTotal } });
                 }}>Next Question <ChevronRight className="h-4 w-4 ml-1"/></Button>
               )}
             </div>
@@ -408,7 +503,6 @@ export default function AppHome() {
                 return a;
               }}
             />
-            <CitationChips citations={payload.citations || []} />
           </>
         )}
         {dictateOut && (
@@ -426,6 +520,48 @@ export default function AppHome() {
           </>
         )}
       </main>
+
+      {showQuizSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl relative">
+            <div className="text-center space-y-4">
+              <div className="text-5xl">{quizScore >= 60 ? "🎉" : "💪"}</div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                {quizScore > 40 ? "Shabaash!" : "OOPS!"}
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                {quizScore > 40
+                  ? "Congratulations! Aapne score kiya:"
+                  : "You only scored:"}
+              </p>
+              <div className="text-5xl font-extrabold text-primary">
+                {quizScore} / {quizTotal * 20}
+              </div>
+
+              <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-xl text-left space-y-2 max-h-[200px] overflow-y-auto border border-border leading-relaxed">
+                <h3 className="font-semibold text-foreground">Improvements & Feedback:</h3>
+                {gradingLoading ? (
+                  <div className="flex items-center gap-2 text-xs">
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                    Generating your report card...
+                  </div>
+                ) : (
+                  <p>{quizSummaryFeedback || "Evaluating your performance..."}</p>
+                )}
+              </div>
+
+              <Button
+                className="w-full"
+                onClick={() => {
+                  window.location.href = "/app";
+                }}
+              >
+                Okay
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <VoiceDock onTranscript={handleTranscript} disabled={loading} />
     </div>

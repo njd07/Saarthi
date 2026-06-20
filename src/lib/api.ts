@@ -9,17 +9,19 @@ export type Citation = { documentId: string; documentTitle?: string; page: numbe
 export type BoardSection =
   | { type: "intro" | "points" | "examples" | "remember"; heading: string; body?: string; items?: string[]; speech?: string }
   | { type: "image"; heading: string; payload: string; speech?: string }
-  | { type: "katex"; heading: string; payload: string; speech?: string };
+  | { type: "katex"; heading: string; payload: string; speech?: string }
+  | { type: "flowchart"; heading: string; steps: string[]; speech?: string };
 
 export type BoardPayload = {
   speech: string;
   board: {
     title: string;
+    question?: string;
     bullets: string[];
     visual: { type: "image" | "katex" | "none"; payload: string };
     sections?: BoardSection[];
   };
-  quiz?: { answer: string; explanation: string };
+  quiz?: { type?: "mcq" | "text"; answer: string; explanation: string };
   citations?: Citation[];
 };
 
@@ -103,9 +105,10 @@ export async function dictate(text: string): Promise<DictatePayload> {
   const data = await r.json();
   if (!r.ok || !data.ok) throw new Error(data?.error || `dictate ${r.status}`);
   try {
-    return JSON.parse(data.content);
+    const jsonStr = data.content.match(/\{[\s\S]*\}/)?.[0] || data.content;
+    return JSON.parse(jsonStr);
   } catch {
-    return JSON.parse(String(data.content).replace(/```json|```/g, "").trim());
+    return { original: text, hinglish: text, hindi: text, english: text };
   }
 }
 

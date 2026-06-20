@@ -35,3 +35,7 @@ api/.env.*
 # Build files
 api/dist
 api/node_modules
+
+# Deployment instructions (kept locally)
+DEPLOYMENT.md
+

@@ -40,24 +40,26 @@ EXPLAIN MODE — produce a RICH, FASCINATING, VISUAL-FIRST lesson that makes a 1
     "bullets": ["3-4 punchy TL;DR headline bullets"],
     "visual": { "type": "image", "payload": "primary diagram image prompt" },
     "sections": [
-      { "type": "intro",    "heading": "Hook",                "body": "2-3 sentence Hinglish hook on the board", "speech": "60-110 word Hinglish TEACHER NARRATION. Do NOT read the body. Greet ('dekho bachcho'), tell a 1-line mini-story or rhetorical question, tease what they'll discover." },
-      { "type": "image",    "heading": "Dekho",               "payload": "detailed English image prompt for a clean labeled educational diagram, vibrant colors, textbook style, on a white background, no text inside the image, 12-25 words", "speech": "60-110 word Hinglish TEACHER NARRATION pointing AT the diagram on screen — 'upar dekho', 'is part ko notice karo', name 2-3 parts, ask one quick class question. Do NOT describe the image prompt." },
-      { "type": "intro",    "heading": "Kya hai?",            "body": "3-4 sentence clear Hinglish definition on the board", "speech": "70-120 word Hinglish TEACHER NARRATION that EXPLAINS the concept using a fresh analogy (rotī, cricket, mobile, ghar) NOT in the body. Build intuition, end with a 'samajh aaya?' check." },
-      { "type": "points",   "heading": "Kaise kaam karta hai?", "items": ["4-6 short Hinglish bullets — steps/parts"], "speech": "70-120 word Hinglish TEACHER NARRATION walking through the steps as a story ('pehle... fir... uske baad...'), adding ONE 'kyun?' per step. Do NOT just re-read the bullets." },
-      { "type": "katex",    "heading": "Formula / Structure", "payload": "LaTeX expression OR labeled structural diagram (\\\\begin{array}, \\\\xrightarrow{}, \\\\underbrace{}). Use \\\\text{} for Hinglish labels. ALWAYS emit something visual.", "speech": "60-100 word Hinglish TEACHER NARRATION DECODING the formula — what each symbol/arrow means in real life + ONE worked mini-example. Do NOT read raw LaTeX." },
-      { "type": "image",    "heading": "Real-life view",      "payload": "second English image prompt showing the concept in a real-world / Indian context, vivid colors, on a white background, no text inside the image, 12-25 words", "speech": "60-110 word Hinglish TEACHER NARRATION linking this scene to the concept ('yeh dekho, ghar mein bhi...') and asking where else students have seen it." },
-      { "type": "examples", "heading": "Examples",            "items": ["2-3 real-life Hinglish examples (cricket, kitchen, farm, mobile, etc.)"], "speech": "70-120 word Hinglish TEACHER NARRATION telling these as mini-stories with characters and a punchline — NOT a dry list re-read." },
-      { "type": "points",   "heading": "Mazedaar fact",       "items": ["2-3 surprising / fun facts"], "speech": "60-100 word Hinglish TEACHER NARRATION delivering facts with excitement ('aapko pata hai...?!') and a wow reaction." },
-      { "type": "remember", "heading": "Yaad rakhna",         "items": ["3-4 must-remember points / common mistakes / exam tips"], "speech": "60-110 word Hinglish TEACHER NARRATION giving exam-day advice, naming the #1 mistake students make, closing with a warm takeaway." }
+      { "type": "intro",     "heading": "Hook",                "body": "2-3 sentence Hinglish hook on the board", "speech": "60-110 word Hinglish TEACHER NARRATION. Do NOT read the body. Greet ('dekho bachcho'), tell a 1-line mini-story or rhetorical question, tease what they'll discover." },
+      { "type": "image",     "heading": "Dekho",               "payload": "detailed English image prompt for a clean labeled educational diagram, vibrant colors, textbook style, on a white background, no text inside the image, 12-25 words", "speech": "60-110 word Hinglish TEACHER NARRATION pointing AT the diagram on screen — 'upar dekho', 'is part ko notice karo', name 2-3 parts, ask one quick class question. Do NOT describe the image prompt." },
+      { "type": "intro",     "heading": "Kya hai?",            "body": "3-4 sentence clear Hinglish definition on the board", "speech": "70-120 word Hinglish TEACHER NARRATION that EXPLAINS the concept using a fresh analogy (rotī, cricket, mobile, ghar) NOT in the body. Build intuition, end with a 'samajh aaya?' check." },
+      { "type": "points",    "heading": "Kaise kaam karta hai?", "items": ["4-6 short Hinglish bullets — steps/parts"], "speech": "70-120 word Hinglish TEACHER NARRATION walking through the steps as a story ('pehle... fir... uske baad...'), adding ONE 'kyun?' per step. Do NOT just re-read the bullets." },
+      { "type": "flowchart", "heading": "Process / Flowchart", "steps": ["3-5 sequential Hinglish steps or boxes mapping the process flow, cycle, or system architecture"], "speech": "70-120 word Hinglish TEACHER NARRATION explaining the flowchart, step-by-step sequence, or structural architecture." },
+      { "type": "katex",     "heading": "Formula / Structure", "payload": "LaTeX expression OR labeled structural diagram (\\\\begin{array}, \\\\xrightarrow{}, \\\\underbrace{}). Use \\\\text{} for Hinglish labels. ALWAYS emit something visual.", "speech": "60-100 word Hinglish TEACHER NARRATION DECODING the formula — what each symbol/arrow means in real life + ONE worked mini-example. Do NOT read raw LaTeX." },
+      { "type": "image",     "heading": "Real-life view",      "payload": "second English image prompt showing the concept in a real-world / Indian context, vivid colors, on a white background, no text inside the image, 12-25 words", "speech": "60-110 word Hinglish TEACHER NARRATION linking this scene to the concept ('yeh dekho, ghar mein bhi...') and asking where else students have seen it." },
+      { "type": "examples",  "heading": "Examples",            "items": ["2-3 real-life Hinglish examples (cricket, kitchen, farm, mobile, etc.)"], "speech": "70-120 word Hinglish TEACHER NARRATION telling these as mini-stories with characters and a punchline — NOT a dry list re-read." },
+      { "type": "points",    "heading": "Mazedaar fact",       "items": ["2-3 surprising / fun facts"], "speech": "60-100 word Hinglish TEACHER NARRATION delivering facts with excitement ('aapko pata hai...?!') and a wow reaction." },
+      { "type": "remember",  "heading": "Yaad rakhna",         "items": ["3-4 must-remember points / common mistakes / exam tips"], "speech": "60-110 word Hinglish TEACHER NARRATION giving exam-day advice, naming the #1 mistake students make, closing with a warm takeaway." }
     ]
   }
 }
 
 RULES:
-- ALWAYS include ALL 9 sections in this order. Never skip.
+- ALWAYS include ALL 10 sections in this order. Never skip.
 - EVERY section MUST include "speech". CRITICAL: speech is what the TEACHER says while that page is on screen — it must NEVER be a verbatim read of body/items/payload. It must ADD value (analogies, class questions, "dekho bachcho", reactions, why-it-matters). Board text + speech = TWO different angles on the same idea.
 - Each speech 60-120 Hinglish words. Warm, energetic, real classroom voice.
 - TWO image sections required: one diagram + one real-life view, different prompts.
+- One flowchart section is mandatory, displaying process flow steps.
 - The "katex" section is mandatory even for non-math topics — use LaTeX arrows/braces (e.g. \\\\text{Sun} \\\\xrightarrow{\\\\text{light}} \\\\text{Leaf} \\\\xrightarrow{} \\\\text{Glucose}).
 - Image payloads MUST be ENGLISH, end with "on a white background, no text inside the image".
 - For greetings/thanks only, return just { speech, board: { title, bullets: [], visual: {type:"none",payload:""}, sections: [] } }.`;
@@ -67,13 +69,27 @@ Students understand Hinglish (Hindi+English). Speak warm, simple Hinglish. NCERT
 
 const QUIZ_PROMPT = `${COMMON_TONE}
 
-Mode: QUIZ. ONE MCQ at a time in Hinglish. Reply with ONLY a JSON object (no markdown fences):
+Mode: QUIZ. ONE question at a time in Hinglish.
+For questions 1 to 4 (n < 5): Generate a high-quality, conceptual MCQ question with 4 options (A, B, C, D) in bullets. Set type to "mcq".
+For question 5 (n == 5, the final question): Generate an open-ended conceptual text question with NO options (set bullets to an empty array []). Set type to "text".
+
+Ask conceptual, high-quality questions. Do not repeat previous questions.
+Reply with ONLY a JSON object (no markdown fences):
 {
-  "speech": "read the question, then 'Option A, B, C, ya D?'",
-  "board": {"title":"Question {n}/{total}","bullets":["A) ...","B) ...","C) ...","D) ..."],"visual":{"type":"none","payload":""}},
-  "quiz": {"answer":"A|B|C|D","explanation":"1 line Hinglish"}
+  "speech": "Read the question out loud in simple Hinglish, then ask the student to answer.",
+  "board": {
+    "title": "Question {n}/{total}",
+    "question": "The actual question text in simple, clear Hinglish",
+    "bullets": ["A) ...", "B) ...", "C) ...", "D) ..."] (leave empty if n == 5),
+    "visual": {"type":"none","payload":""}
+  },
+  "quiz": {
+    "type": "mcq" or "text" (must be "text" for question 5),
+    "answer": "A|B|C|D (leave empty if type is text)",
+    "explanation": "1 line explanation of the correct concept in Hinglish"
+  }
 }
-Do NOT include a "sections" field. Do NOT produce a long explanation.`;
+Do NOT include a "sections" field. Do NOT produce any extra text.`;
 
 const ACTIVITY_PROMPT = `${COMMON_TONE}
 
@@ -447,6 +463,183 @@ chat.post("/", async (c) => {
     content: fallbackContent,
     attempts,
     citations,
+  });
+});
+
+const GRADE_PROMPT = `You are Saarthi, a strict but encouraging teacher grading a student's custom text answer to a quiz question.
+Evaluate the answer out of 20 points based on this strict rubric:
+- 0 points: Irrelevant, completely incorrect, or "I don't know".
+- 5 points: Partially correct but lacks depth or misses the main concept.
+- 10 to 15 points: Good understanding but missing key details.
+- 20 points: Perfect, deep understanding of the concept.
+
+Provide feedback in warm Hinglish. If the score is low, gently explain the correct concept.
+Reply with ONLY a JSON object (no markdown fences):
+{
+  "score": 0,
+  "explanation": "Hinglish explanation of why they got this score, what the correct answer is, and how they can improve."
+}
+Only output the JSON.`;
+
+chat.post("/grade", async (c) => {
+  const { question, userAnswer } = await c.req.json();
+  const openRouterKey = c.req.header("x-openrouter-key") || process.env.OPENROUTER_API_KEY || "";
+  const groqKey = c.req.header("x-groq-key") || process.env.GROQ_API_KEY || "";
+  const geminiKey = c.req.header("x-gemini-key") || process.env.GEMINI_API_KEY || "";
+
+  const messages = [
+    { role: "system", content: GRADE_PROMPT },
+    { role: "user", content: `Question: ${question}\nStudent's Answer: ${userAnswer}` }
+  ];
+
+  const deadline = Date.now() + TOTAL_DEADLINE_MS;
+  const attempts: any[] = [];
+
+  while (Date.now() < deadline) {
+    if (groqKey) {
+      const controller = new AbortController();
+      try {
+        const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+        const result = await withTimeout(
+          callGroq(GROQ_MODEL, messages, groqKey, controller.signal),
+          remaining,
+          controller,
+        );
+        return c.json({ ok: true, model: result.model, content: result.content });
+      } catch (e: any) {
+        attempts.push({ model: `groq/${GROQ_MODEL}`, error: e.message });
+      }
+    }
+
+    if (openRouterKey) {
+      for (const model of OPENROUTER_MODELS) {
+        if (Date.now() > deadline) break;
+        const controller = new AbortController();
+        try {
+          const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+          const result = await withTimeout(
+            callOpenRouter(model, messages, openRouterKey, controller.signal),
+            remaining,
+            controller,
+          );
+          return c.json({ ok: true, model: result.model, content: result.content });
+        } catch (e: any) {
+          attempts.push({ model: `openrouter/${model}`, error: e.message });
+        }
+      }
+    }
+
+    if (geminiKey) {
+      for (const model of GEMINI_MODELS) {
+        if (Date.now() > deadline) break;
+        const controller = new AbortController();
+        try {
+          const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+          const result = await withTimeout(
+            callGemini(model, messages, geminiKey, controller.signal),
+            remaining,
+            controller,
+          );
+          return c.json({ ok: true, model: result.model, content: result.content });
+        } catch (e: any) {
+          attempts.push({ model: `gemini/${model}`, error: e.message });
+        }
+      }
+    }
+    break;
+  }
+
+  return c.json({
+    ok: true,
+    model: "fallback",
+    content: JSON.stringify({
+      score: 10,
+      explanation: "Aapka answer evaluate nahi ho paya network busy hone ki wajah se. Keep learning!"
+    })
+  });
+});
+
+const SUMMARY_PROMPT = `You are Saarthi, a friendly classroom co-pilot.
+Generate a summary of the student's performance on a quiz.
+Topic: {topic}
+Score: {score} out of {maxScore}
+
+Provide a warm, encouraging summary in Hinglish (Hindi + English) with 2-3 specific points of improvements based on the topic. Keep it under 80 words.
+Do not use markdown formatting.`;
+
+chat.post("/quiz-summary", async (c) => {
+  const { topic, score, maxScore } = await c.req.json();
+  const openRouterKey = c.req.header("x-openrouter-key") || process.env.OPENROUTER_API_KEY || "";
+  const groqKey = c.req.header("x-groq-key") || process.env.GROQ_API_KEY || "";
+  const geminiKey = c.req.header("x-gemini-key") || process.env.GEMINI_API_KEY || "";
+
+  const systemPrompt = SUMMARY_PROMPT
+    .replace("{topic}", topic)
+    .replace("{score}", String(score))
+    .replace("{maxScore}", String(maxScore));
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: "Please generate my feedback summary." }
+  ];
+
+  const deadline = Date.now() + TOTAL_DEADLINE_MS;
+  while (Date.now() < deadline) {
+    if (groqKey) {
+      const controller = new AbortController();
+      try {
+        const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+        const result = await withTimeout(
+          callGroq(GROQ_MODEL, messages, groqKey, controller.signal),
+          remaining,
+          controller,
+        );
+        let text = result.content;
+        try {
+          const j = JSON.parse(text);
+          text = j.summary || j.feedback || text;
+        } catch {}
+        return c.json({ ok: true, content: text });
+      } catch (e) {}
+    }
+
+    if (openRouterKey) {
+      for (const model of OPENROUTER_MODELS) {
+        if (Date.now() > deadline) break;
+        const controller = new AbortController();
+        try {
+          const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+          const result = await withTimeout(
+            callOpenRouter(model, messages, openRouterKey, controller.signal),
+            remaining,
+            controller,
+          );
+          return c.json({ ok: true, content: result.content });
+        } catch (e) {}
+      }
+    }
+
+    if (geminiKey) {
+      for (const model of GEMINI_MODELS) {
+        if (Date.now() > deadline) break;
+        const controller = new AbortController();
+        try {
+          const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
+          const result = await withTimeout(
+            callGemini(model, messages, geminiKey, controller.signal),
+            remaining,
+            controller,
+          );
+          return c.json({ ok: true, content: result.content });
+        } catch (e) {}
+      }
+    }
+    break;
+  }
+
+  return c.json({
+    ok: true,
+    content: `Aapne ${score}/${maxScore} score kiya hai on ${topic}. Bahut badhiya! Apni padhai isi tarah continue rakhein.`
   });
 });
 
