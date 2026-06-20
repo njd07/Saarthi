@@ -24,8 +24,9 @@ stt.post("/", async (c) => {
     const groqForm = new FormData();
     groqForm.append("file", file, file.name || "audio.webm");
     groqForm.append("model", "whisper-large-v3");
-    groqForm.append("language", "hi"); // Hindi/Hinglish
+    groqForm.append("language", "hi");
     groqForm.append("response_format", "json");
+    groqForm.append("prompt", "Transcribe in romanized English/Latin script only. Never use Devanagari. Example: namaste, photosynthesis samjhao, quiz on fractions. Always write Hindi words in English letters.");
 
     const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
       method: "POST",

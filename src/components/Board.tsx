@@ -129,7 +129,7 @@ export function Board({
   // Returns the prepared (paused) audio element once ready.
   onPageSpeech?: (text: string, pageIdx: number) => Promise<HTMLAudioElement | null>;
 }) {
-  const hasSections = !!payload.board.sections?.length && !payload.activity;
+  const hasSections = !!payload.board.sections?.length;
   const pages = useMemo(
     () => (hasSections ? groupIntoPages(payload.board.sections!) : []),
     [payload, hasSections],

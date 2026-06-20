@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/readme_logo.png" width="80" alt="Saarthi Logo" />
+  <img src=".github/assets/readme_logo.png" width="280" height="140" alt="Saarthi Logo" />
   <h1 align="center">Saarthi</h1>
   <p align="center">
     <strong>Voice-first Hinglish AI Co-Pilot for Indian Classrooms</strong>
@@ -21,8 +21,8 @@
     <img src="https://img.shields.io/badge/pgvector-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="pgvector" />
   </div>
   <div style="margin-top: 5px;">
-    <img src="https://img.shields.io/badge/Gemini_2.0-8E75B2?style=for-the-badge&logo=google&logoColor=white" alt="Gemini" />
-    <img src="https://img.shields.io/badge/ElevenLabs-000000?style=for-the-badge&logo=elevenlabs&logoColor=white" alt="ElevenLabs" />
+    <img src="https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logo=groq&logoColor=white" alt="Groq" />
+    <img src="https://img.shields.io/badge/Edge_TTS-0078D4?style=for-the-badge&logo=microsoft&logoColor=white" alt="Edge TTS" />
     <img src="https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Render" />
     <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
   </div>
@@ -32,12 +32,13 @@
 
 ## ✨ Features
 
-- 🎙️ **Hands-Free Control:** Speak in Hinglish (Hindi + English) to trigger explanations, quizzes, and activities.
-- 📺 **Interactive Smart Board:** Generates 9-part visual lessons complete with custom diagrams (via Pollinations.ai), real-life Indian analogies, and LaTeX math formatting.
-- 💬 **High-Quality TTS:** Real-time, expressive Hindi/English narration using ElevenLabs, with a seamless fallback to native browser Web Speech API.
-- 📚 **Strict RAG (Bring Your Own Textbook):** Upload NCERT PDFs. Saarthi chunks and embeds them using Google's `text-embedding-004`, allowing the AI to answer strictly from the syllabus.
-- 🛡️ **Resilient Fallback Engine:** Primary requests go to **Google Gemini 2.0 Flash**. If rate-limited, the backend silently cascades through a 5-model OpenRouter chain (DeepSeek, Llama 3.3, Qwen) ensuring the classroom is never interrupted.
-- 📊 **Teacher Analytics:** Tracks student participation, spoken seconds, and quiz accuracy. Generates downloadable PDF/CSV reports.
+- 🎙️ **Hands-Free Control:** Speak in Hinglish (Hindi + English) to trigger explanations and quizzes.
+- 📺 **Interactive Smart Board:** Generates 9-part visual lessons with AI diagrams (Pollinations.ai), real-life Indian analogies, and LaTeX math.
+- 🗣️ **Free Hindi TTS:** Natural female Hindi narration via Microsoft Edge TTS (`hi-IN-SwaraNeural`) — no API key needed.
+- 🎤 **Groq Whisper STT:** Lightning-fast Hinglish speech recognition via `whisper-large-v3`, always outputs romanized Latin script.
+- 📚 **RAG (Bring Your Own Textbook):** Upload NCERT PDFs. Saarthi chunks and embeds them using Google's `gemini-embedding-2`, answering strictly from the syllabus.
+- 🛡️ **Unbreakable 3-Tier Fallback:** Groq `llama-3.3-70b` (primary) → OpenRouter free models (8 models) → Google Gemini 2.0 Flash. The classroom is never interrupted.
+- 📊 **Teacher Analytics:** Tracks student participation, spoken seconds, and quiz accuracy with downloadable PDF/CSV reports.
 
 ---
 
@@ -54,7 +55,7 @@ graph TD
     subgraph Backend
         API[Hono API]
         Auth[JWT Auth]
-        RAG[PDF Ingest & Chunking]
+        RAG[PDF Ingest]
     end
 
     subgraph Database
@@ -63,24 +64,26 @@ graph TD
     end
 
     subgraph AI_Services
-        GEMINI[Google Gemini 2.0]
+        GROQ[Groq LLM + Whisper]
         OR[OpenRouter Fallback]
+        GEMINI[Google Gemini]
         POL[Pollinations.ai Images]
-        EL[ElevenLabs TTS]
+        EDGE[Edge TTS]
         EMB[Google Embeddings]
     end
 
     UI <-->|JSON over HTTP| API
-    VD -->|Web Speech API| UI
-    API -->|Prompt| GEMINI
-    API -->|Fallback| OR
-    API -->|Text| EL
-    API -->|Prompt| POL
+    VD -->|Audio Blob| GROQ
+    API -->|Primary| GROQ
+    API -->|Secondary| OR
+    API -->|Tertiary| GEMINI
+    API -->|Text| EDGE
+    UI -->|Direct URL| POL
     API -->|Upload| RAG
     RAG -->|Vector| EMB
     EMB --> VEC
     API <-->|Queries| PG
-    EL -->|Audio Stream| Player
+    EDGE -->|Audio Stream| Player
 ```
 
 ---
@@ -93,8 +96,8 @@ graph TD
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/saarthi.git
-cd saarthi
+git clone https://github.com/njd07/Saarthi.git
+cd Saarthi
 
 # Install frontend dependencies
 npm install
@@ -115,22 +118,20 @@ Create `.env` in the `api/` folder (backend):
 DATABASE_URL=postgresql://postgres:password@localhost:5432/saarthi
 JWT_SECRET=your_super_secret_jwt_string
 
-# Required for AI
-GEMINI_API_KEY=your_google_ai_studio_key
+# Required
+GROQ_API_KEY=your_groq_key
 
-# Optional (but recommended for full experience)
+# Recommended for fallback
 OPENROUTER_API_KEY=your_openrouter_key
-ELEVENLABS_API_KEY=your_elevenlabs_key
+GEMINI_API_KEY=your_google_ai_studio_key
 
 PORT=3001
 FRONTEND_URL=http://localhost:5173
 ```
 
 ### 3. Initialize Database
-**⚠️ CRITICAL WARNING FOR NEON DB USERS:** 
-If you are using Neon.tech for your Postgres database, you **MUST** go to your Neon Project Dashboard -> Extensions tab and click **"Enable pgvector"** before running the setup below. The script will fail if the extension is not enabled in the Neon dashboard first!
+**⚠️ NEON DB USERS:** Enable `pgvector` extension from your Neon Dashboard → Extensions tab before running the setup.
 
-Ensure your Postgres server is running (or your Neon URL is in the `.env`), then execute:
 ```bash
 cd api
 npm run db:init
@@ -163,15 +164,13 @@ Visit `http://localhost:5173`. Create a new account or click "Create demo admin 
 4. Set the **Root Directory** to `api`.
 5. Set the **Build Command** to `npm install && npm run build`.
 6. Set the **Start Command** to `npm start`.
-7. Go to the **Environment** tab and add all the variables from your `api/.env` file.
-8. If asked, choose **Ohio (US East)** as your region (matches the Neon DB region).
-9. Render will automatically build and deploy.
+7. Add all env vars from your `api/.env` file.
 
 ### Frontend (Vercel)
 1. In Vercel, import the same GitHub repository.
-2. Leave the root directory as the default (the root of the repo).
+2. Leave the root directory as the default.
 3. Set the Environment Variable: `VITE_API_URL=https://your-render-app-url.onrender.com`
-4. Deploy. The `vercel.json` ensures client-side routing works perfectly.
+4. Deploy.
 
 ---
 

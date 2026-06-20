@@ -20,17 +20,22 @@ export type BoardPayload = {
     sections?: BoardSection[];
   };
   quiz?: { answer: string; explanation: string };
-  activity?: {
-    totalMinutes: number;
-    steps: { title: string; instruction: string; seconds: number }[];
-  };
   citations?: Citation[];
 };
 
 export type DictatePayload = { original: string; hindi: string; english: string };
 
+// Global mute flag — when true, speak() returns null immediately
+let _globalMuted = false;
+export function setMuted(m: boolean) {
+  _globalMuted = m;
+  if (m) {
+    try { window.speechSynthesis?.cancel(); } catch {}
+  }
+}
+
 export async function askAI(opts: {
-  mode: "explain" | "quiz" | "activity";
+  mode: "explain" | "quiz";
   userText: string;
   history?: { role: "user" | "assistant"; content: string }[];
   quizMeta?: { n: number; total: number };
@@ -86,8 +91,6 @@ export async function dictate(text: string): Promise<DictatePayload> {
 
 export async function transcribe(blob: Blob): Promise<string> {
   if (!navigator.onLine) throw new Error("Offline — type your question instead.");
-  // Use browser Web Speech API (handled in VoiceDock)
-  // This function is kept for compatibility but the actual STT is browser-side now
   const fd = new FormData();
   fd.append("file", blob, "rec.webm");
   const r = await authFetch(`/api/stt`, {
@@ -99,8 +102,6 @@ export async function transcribe(blob: Blob): Promise<string> {
   if (!r.ok) throw new Error(data?.error || `stt ${r.status}`);
   return data.text || "";
 }
-
-let ttsFallbackForever = false;
 
 function speakWithBrowser(text: string, rate: number, autoplay = true): HTMLAudioElement | null {
   try {
@@ -131,37 +132,28 @@ export async function speak(
   text: string,
   opts: { autoplay?: boolean } = {},
 ): Promise<HTMLAudioElement | null> {
+  // Hard block if globally muted
+  if (_globalMuted) return null;
+
   const autoplay = opts.autoplay ?? true;
   const s = loadSettings();
   const rate = Math.max(0.5, s.speechRate);
-  if (ttsFallbackForever) return speakWithBrowser(text, rate, autoplay);
   try {
-    const headers: Record<string, string> = {};
-    if (s.elevenLabsKey) {
-      headers["x-elevenlabs-key"] = s.elevenLabsKey;
-      headers["x-voice-id"] = s.elevenLabsVoiceId;
-    }
-
     const r = await authFetch(`/api/tts`, {
       method: "POST",
-      headers,
-      body: JSON.stringify({ text, voice: s.voice }),
+      body: JSON.stringify({ text }),
     });
     const ct = r.headers.get("Content-Type") || "";
     if (ct.includes("application/json")) {
       const j = await r.json().catch(() => null);
-      if (j?.fallback) {
-        ttsFallbackForever = true;
-        return speakWithBrowser(text, rate, autoplay);
-      }
+      if (j?.fallback) return speakWithBrowser(text, rate, autoplay);
       return null;
     }
-    if (!r.ok) return null;
+    if (!r.ok) return speakWithBrowser(text, rate, autoplay);
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audio.playbackRate = rate;
-    // Wait until the audio is fully decodable so caller can sync visuals.
     await new Promise<void>((res) => {
       if (audio.readyState >= 3) return res();
       const done = () => { audio.removeEventListener("canplaythrough", done); audio.removeEventListener("error", done); res(); };
@@ -169,6 +161,8 @@ export async function speak(
       audio.addEventListener("error", done, { once: true });
       setTimeout(done, 6000);
     });
+    // Re-check mute after async wait
+    if (_globalMuted) return null;
     if (autoplay) audio.play().catch(() => {});
     return audio;
   } catch {
@@ -181,7 +175,6 @@ export async function generateImage(prompt: string): Promise<string | null> {
   if (cached) return cached;
   if (!navigator.onLine) return null;
   try {
-    // Build Pollinations URL directly — no backend needed, no rate limits
     const cleanPrompt = `Clean educational illustration on a white background, no text or words inside the image. Subject: ${prompt}`;
     const encoded = encodeURIComponent(cleanPrompt);
     const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&model=flux`;
@@ -196,59 +189,30 @@ export async function generateImage(prompt: string): Promise<string | null> {
 
 export async function startSession(title: string): Promise<string | null> {
   try {
-    const r = await authFetch(`/api/sessions`, {
-      method: "POST",
-      body: JSON.stringify({ title }),
-    });
+    const r = await authFetch(`/api/sessions`, { method: "POST", body: JSON.stringify({ title }) });
     if (!r.ok) return null;
     const data = await r.json();
     return data.id;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 export async function logInteraction(args: {
-  sessionId: string | null;
-  studentId: string | null;
-  mode: string;
-  prompt: string;
-  response: string;
-  model: string;
-  durationMs: number;
+  sessionId: string | null; studentId: string | null; mode: string; prompt: string;
+  response: string; model: string; durationMs: number;
 }) {
-  try {
-    await authFetch(`/api/interactions`, {
-      method: "POST",
-      body: JSON.stringify(args),
-    });
-  } catch { /* fire and forget */ }
+  try { await authFetch(`/api/interactions`, { method: "POST", body: JSON.stringify(args) }); } catch {}
 }
 
 export async function logQuizAttempt(args: {
-  sessionId: string | null;
-  studentId: string | null;
-  question: string;
-  chosen: string;
-  correctAnswer: string;
-  isCorrect: boolean;
+  sessionId: string | null; studentId: string | null; question: string; chosen: string;
+  correctAnswer: string; isCorrect: boolean;
 }) {
-  try {
-    await authFetch(`/api/quiz-attempts`, {
-      method: "POST",
-      body: JSON.stringify(args),
-    });
-  } catch { /* fire and forget */ }
+  try { await authFetch(`/api/quiz-attempts`, { method: "POST", body: JSON.stringify(args) }); } catch {}
 }
 
 export async function logSpeech(args: { sessionId: string | null; studentId: string | null; seconds: number }) {
   if (args.seconds <= 0) return;
-  try {
-    await authFetch(`/api/speech-segments`, {
-      method: "POST",
-      body: JSON.stringify(args),
-    });
-  } catch { /* fire and forget */ }
+  try { await authFetch(`/api/speech-segments`, { method: "POST", body: JSON.stringify(args) }); } catch {}
 }
 
 // ---- Documents / RAG ----
@@ -256,10 +220,7 @@ export async function logSpeech(args: { sessionId: string | null; studentId: str
 export async function uploadDocument(file: File): Promise<{ id: string } | null> {
   const fd = new FormData();
   fd.append("file", file);
-  const r = await authFetch(`/api/ingest`, {
-    method: "POST",
-    body: fd,
-  });
+  const r = await authFetch(`/api/ingest`, { method: "POST", body: fd });
   const data = await r.json();
   if (!data.ok && data.error) throw new Error(data.error);
   return data.documentId ? { id: data.documentId } : null;

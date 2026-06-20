@@ -1,22 +1,18 @@
-// Client-side settings storage for BYO API keys + voice preferences.
+// Client-side settings storage for voice preferences.
 export type AppSettings = {
   openRouterKey: string;
-  elevenLabsKey: string;
-  elevenLabsVoiceId: string;
   voice: string;
   speechRate: number;
-  strictRag: boolean; // if true, ai-chat answers ONLY from uploaded docs when any exist
+  strictRag: boolean;
 };
 
 const KEY = "saarthi.settings.v1";
 
 const DEFAULTS: AppSettings = {
   openRouterKey: "",
-  elevenLabsKey: "",
-  elevenLabsVoiceId: "JBFqnCBsd6RMkjVDRZzb",
-  voice: "alloy",
+  voice: "hi-IN-SwaraNeural",
   speechRate: 1,
-  strictRag: false, // blended by default per teacher preference
+  strictRag: false,
 };
 
 export function loadSettings(): AppSettings {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Sparkles, Trophy, Atom, Mic2, Settings as SettingsIcon, LogOut, Moon, Sun, Loader2, BookOpen, BarChart3, Shield, Trash2, Volume2, VolumeX,
+  Sparkles, Trophy, Mic2, Settings as SettingsIcon, LogOut, Moon, Sun, Loader2, BookOpen, BarChart3, Shield, Trash2, Volume2, VolumeX,
 } from "lucide-react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import Lenis from "lenis";
@@ -13,18 +13,17 @@ import { OrbitingWordmark } from "@/components/OrbitingWordmark";
 import { VoiceDock } from "@/components/VoiceDock";
 import { Board } from "@/components/Board";
 import { DictateBoard } from "@/components/DictateBoard";
-import { ActivityControls } from "@/components/ActivityControls";
 import { StudentChips, type Student } from "@/components/StudentChips";
 import { CitationChips } from "@/components/CitationChips";
 import { OfflinePill } from "@/components/OfflinePill";
-import { askAI, dictate, speak, startSession, logInteraction, logQuizAttempt, logSpeech, type BoardPayload, type DictatePayload } from "@/lib/api";
+import { askAI, dictate, speak, setMuted as setGlobalMuted, startSession, logInteraction, logQuizAttempt, logSpeech, type BoardPayload, type DictatePayload } from "@/lib/api";
 import { loadSettings, saveSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-type Mode = "explain" | "quiz" | "activity" | "dictate";
+type Mode = "explain" | "quiz" | "dictate";
 
 export default function AppHome() {
   const { theme, setTheme } = useTheme();
@@ -49,11 +48,6 @@ export default function AppHome() {
   const [quizN, setQuizN] = useState(0);
   const [quizTotal] = useState(5);
   const [waitingAnswer, setWaitingAnswer] = useState(false);
-
-  // Activity state
-  const [stepIndex, setStepIndex] = useState(0);
-  const [stepSecondsLeft, setStepSecondsLeft] = useState(0);
-  const [activityRunning, setActivityRunning] = useState(false);
 
   useEffect(() => {
     return () => audioRef.current?.pause();
@@ -87,33 +81,23 @@ export default function AppHome() {
     startSession(`Session ${new Date().toLocaleString()}`).then((id) => id && setSessionId(id));
   }, [user]);
 
-  // Activity countdown
-  useEffect(() => {
-    if (mode !== "activity" || !payload?.activity || !activityRunning || stepSecondsLeft <= 0) return;
-    const t = setInterval(() => setStepSecondsLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, [mode, payload, activityRunning, stepSecondsLeft]);
-
-  // Keyboard shortcuts for activity
-  useEffect(() => {
-    if (mode !== "activity" || !payload?.activity) return;
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.code === "Space" && e.shiftKey) { e.preventDefault(); setActivityRunning((r) => !r); }
-      if (e.code === "ArrowRight") { e.preventDefault(); nextStep(); }
-      if (e.code === "ArrowLeft") { e.preventDefault(); prevStep(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [mode, payload, stepIndex]);
-
-  function stopAudio() { try { audioRef.current?.pause(); } catch {} audioRef.current = null; setAudioEl(null); }
+  function stopAudio() {
+    try { audioRef.current?.pause(); } catch {}
+    try { window.speechSynthesis?.cancel(); } catch {}
+    audioRef.current = null;
+    setAudioEl(null);
+  }
   function clearTopic() { stopAudio(); setPayload(null); setDictateOut(null); }
+
+  function handleMuteToggle() {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    setGlobalMuted(newMuted);
+    if (newMuted) stopAudio();
+  }
 
   async function runAsk(userText: string, opts?: { quizMeta?: { n: number; total: number } }) {
     stopAudio();
-    // Clear previous board so Board unmounts and never replays stale narration
     setPayload(null);
     setDictateOut(null);
     setLoading(true);
@@ -139,16 +123,10 @@ export default function AppHome() {
       setPayload(p);
       setDictateOut(null);
       setModelUsed(offline ? "offline cache" : model);
-      if (mode === "activity" && p.activity?.steps?.length) {
-        setStepIndex(0);
-        setStepSecondsLeft(p.activity.steps[0].seconds);
-        setActivityRunning(false);
-      }
       logInteraction({
         sessionId, studentId: activeStudent?.id ?? null, mode, prompt: userText,
         response: p.speech, model, durationMs: Date.now() - t0,
       });
-      // Explain mode with paginated sections handles audio per-page via Board's onPageSpeech.
       const hasSections = !!p.board?.sections?.length;
       if (!hasSections) {
         if (!isMuted) {
@@ -222,56 +200,11 @@ export default function AppHome() {
     }
   }
 
-  async function nextStep() {
-    if (!payload?.activity) return;
-    const next = stepIndex + 1;
-    if (next >= payload.activity.steps.length) {
-      stopAudio();
-      if (!isMuted) {
-        const ea = (await speak("Activity poori ho gayi. Shabaash class!")) || null;
-        audioRef.current = ea; setAudioEl(ea);
-      }
-      setActivityRunning(false);
-      return;
-    }
-    setStepIndex(next);
-    const step = payload.activity.steps[next];
-    setStepSecondsLeft(step.seconds);
-    stopAudio();
-    if (!isMuted) {
-      const a = await speak(`Step ${next + 1}: ${step.title}. ${step.instruction}`);
-      if (a) { audioRef.current = a; setAudioEl(a); }
-    }
-  }
-  function prevStep() {
-    if (!payload?.activity || stepIndex === 0) return;
-    const i = stepIndex - 1;
-    setStepIndex(i);
-    setStepSecondsLeft(payload.activity.steps[i].seconds);
-  }
-  function restartActivity() {
-    if (!payload?.activity) return;
-    setStepIndex(0);
-    setStepSecondsLeft(payload.activity.steps[0].seconds);
-    setActivityRunning(false);
-  }
-
   function handleTranscript(text: string, durationSec: number) {
     logSpeech({ sessionId, studentId: activeStudent?.id ?? null, seconds: durationSec });
     if (mode === "quiz") {
       if (waitingAnswer) gradeQuizAnswer(text);
       else startQuiz(text);
-      return;
-    }
-    if (mode === "activity") {
-      const lower = text.toLowerCase();
-      if (payload) {
-        if (lower.includes("pause")) { setActivityRunning(false); return; }
-        if (lower.includes("start") || lower.includes("resume")) { setActivityRunning(true); return; }
-        if (lower.includes("next") || lower.includes("agla") || lower.includes("aage")) { nextStep(); return; }
-        if (lower.includes("previous") || lower.includes("pichla")) { prevStep(); return; }
-      }
-      runAsk(text);
       return;
     }
     runAsk(text);
@@ -290,7 +223,6 @@ export default function AppHome() {
   const modes: { id: Mode; label: string; icon: any; hint: string }[] = [
     { id: "explain", label: "Explain", icon: Sparkles, hint: "Bolo: 'Photosynthesis samjhao class 7.'" },
     { id: "quiz", label: "Quiz", icon: Trophy, hint: "Bolo: 'Quiz on fractions, easy.'" },
-    { id: "activity", label: "Activity", icon: Atom, hint: "Bolo: 'Activity on air pressure.'" },
     { id: "dictate", label: "Dictate", icon: Mic2, hint: "Bolo Hinglish — Hindi+English dikhega." },
   ];
 
@@ -368,7 +300,7 @@ export default function AppHome() {
           <StudentChips activeStudentId={activeStudent?.id ?? null} onSelect={setActiveStudent} />
         </motion.div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
           {modes.map((m, i) => (
             <motion.button
               key={m.id}
@@ -414,9 +346,7 @@ export default function AppHome() {
             placeholder={
               mode === "quiz"
                 ? waitingAnswer ? "Type A, B, C or D…" : "Quiz topic"
-                : mode === "activity"
-                  ? payload ? "Type 'next' or new activity topic" : "Activity topic"
-                  : mode === "dictate" ? "Type or speak any Hinglish sentence" : "Or type a question…"
+                : mode === "dictate" ? "Type or speak any Hinglish sentence" : "Or type a question…"
             }
             className="flex-1"
           />
@@ -432,25 +362,6 @@ export default function AppHome() {
               {activeStudent && <span className="ml-2 text-primary">· {activeStudent.name}</span>}
             </span>
             {waitingAnswer && <span className="px-2 py-1 rounded bg-primary/10 text-primary text-xs animate-pulse">Listening for answer…</span>}
-          </div>
-        )}
-
-        {mode === "activity" && payload?.activity && (
-          <div className="mb-4">
-            <ActivityControls
-              running={activityRunning}
-              stepIndex={stepIndex}
-              totalSteps={payload.activity.steps.length}
-              secondsLeft={stepSecondsLeft}
-              onPlayPause={() => setActivityRunning((r) => !r)}
-              onNext={nextStep}
-              onPrev={prevStep}
-              onRestart={restartActivity}
-              onSkip={() => setStepSecondsLeft(0)}
-            />
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Shift+Space pause · ←/→ prev/next · Or say "pause" / "agla"
-            </p>
           </div>
         )}
 
@@ -472,7 +383,7 @@ export default function AppHome() {
               <Button variant="outline" size="sm" onClick={clearTopic}>
                 <Trash2 className="h-4 w-4 mr-1" /> Clear topic
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setIsMuted((m) => !m)}>
+              <Button variant="outline" size="sm" onClick={handleMuteToggle}>
                 {isMuted ? <VolumeX className="h-4 w-4 mr-1" /> : <Volume2 className="h-4 w-4 mr-1" />}
                 {isMuted ? "Unmute" : "Mute"}
               </Button>
@@ -497,7 +408,7 @@ export default function AppHome() {
               <Button variant="outline" size="sm" onClick={clearTopic}>
                 <Trash2 className="h-4 w-4 mr-1" /> Clear topic
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setIsMuted((m) => !m)}>
+              <Button variant="outline" size="sm" onClick={handleMuteToggle}>
                 {isMuted ? <VolumeX className="h-4 w-4 mr-1" /> : <Volume2 className="h-4 w-4 mr-1" />}
                 {isMuted ? "Unmute" : "Mute"}
               </Button>

@@ -2,7 +2,7 @@ import { createRouter } from "../types.js";
 import { query } from "../db.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AI Chat — Gemini (primary) → OpenRouter (secondary) → Groq (tertiary)
+// AI Chat — Groq (primary) → OpenRouter (secondary) → Gemini (tertiary)
 // Unbreakable fallback chain: UI never sees an error.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -359,25 +359,24 @@ chat.post("/", async (c) => {
   const attempts: { model: string; error: string }[] = [];
 
   while (Date.now() < deadline) {
-    // ── 1. Gemini (primary) ──
-    for (const model of GEMINI_MODELS) {
-      if (Date.now() > deadline) break;
+    // ── 1. Groq (primary — fast, reliable) ──
+    if (process.env.GROQ_API_KEY) {
       const controller = new AbortController();
       try {
         const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
         const result = await withTimeout(
-          callGemini(model, messages, controller.signal),
+          callGroq(GROQ_MODEL, messages, controller.signal),
           remaining,
           controller,
         );
         return c.json({ ok: true, model: result.model, content: result.content, attempts, citations });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        attempts.push({ model: `gemini/${model}`, error: msg });
+        attempts.push({ model: `groq/${GROQ_MODEL}`, error: msg });
       }
     }
 
-    // ── 2. OpenRouter (secondary) ──
+    // ── 2. OpenRouter (secondary — free models) ──
     if (openRouterKey) {
       for (const model of OPENROUTER_MODELS) {
         if (Date.now() > deadline) break;
@@ -397,20 +396,21 @@ chat.post("/", async (c) => {
       }
     }
 
-    // ── 3. Groq (tertiary) ──
-    if (process.env.GROQ_API_KEY) {
+    // ── 3. Gemini (tertiary — rate-limited free tier) ──
+    for (const model of GEMINI_MODELS) {
+      if (Date.now() > deadline) break;
       const controller = new AbortController();
       try {
         const remaining = Math.min(PER_MODEL_TIMEOUT_MS, deadline - Date.now());
         const result = await withTimeout(
-          callGroq(GROQ_MODEL, messages, controller.signal),
+          callGemini(model, messages, controller.signal),
           remaining,
           controller,
         );
         return c.json({ ok: true, model: result.model, content: result.content, attempts, citations });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        attempts.push({ model: `groq/${GROQ_MODEL}`, error: msg });
+        attempts.push({ model: `gemini/${model}`, error: msg });
       }
     }
 

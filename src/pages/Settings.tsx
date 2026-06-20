@@ -73,32 +73,7 @@ export default function Settings() {
               />
             </div>
 
-            <div>
-              <Label htmlFor="el" className="text-xs">ElevenLabs API key (optional)</Label>
-              <Input
-                id="el"
-                type="password"
-                placeholder="sk_..."
-                value={s.elevenLabsKey}
-                onChange={(e) => update("elevenLabsKey", e.target.value)}
-                className="mt-1"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Stored only in your browser. Get a key from elevenlabs.io.
-              </p>
-            </div>
 
-            {s.elevenLabsKey && (
-              <div>
-                <Label htmlFor="elv" className="text-xs">ElevenLabs voice ID</Label>
-                <Input
-                  id="elv"
-                  value={s.elevenLabsVoiceId}
-                  onChange={(e) => update("elevenLabsVoiceId", e.target.value)}
-                  className="mt-1 font-mono text-xs"
-                />
-              </div>
-            )}
           </div>
         </section>
 
