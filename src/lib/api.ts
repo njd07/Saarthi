@@ -63,11 +63,27 @@ export async function askAI(opts: {
       parsed = JSON.parse(String(data.content).replace(/```json|```/g, "").trim());
     }
     if (data.citations) parsed.citations = data.citations;
-    cachePayload(opts.mode, opts.userText, parsed);
+
+    // Ensure quiz responses have required fields
+    if (opts.mode === "quiz") {
+      if (!parsed.quiz) parsed.quiz = { answer: "A", explanation: "" };
+      if (!parsed.board) parsed.board = { title: "Quiz", bullets: [], visual: { type: "none", payload: "" } };
+      if (!parsed.board.visual) parsed.board.visual = { type: "none", payload: "" };
+      // Remove any sections the AI might have added (quiz is single-panel)
+      delete (parsed.board as any).sections;
+    }
+
+    // Don't cache quiz — each question must be unique
+    if (opts.mode !== "quiz") {
+      cachePayload(opts.mode, opts.userText, parsed);
+    }
     return { payload: parsed, model: data.model };
   } catch (e) {
-    const cached = await getCachedPayload(opts.mode, opts.userText);
-    if (cached) return { payload: cached, model: "offline-cache", offline: true };
+    // Never serve cached data for quiz mode
+    if (opts.mode !== "quiz") {
+      const cached = await getCachedPayload(opts.mode, opts.userText);
+      if (cached) return { payload: cached, model: "offline-cache", offline: true };
+    }
     throw e;
   }
 }

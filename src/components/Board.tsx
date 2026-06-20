@@ -123,6 +123,7 @@ export function Board({
   payload,
   audio,
   onPageSpeech,
+  onOptionSelect,
 }: {
   payload: BoardPayload;
   audio?: HTMLAudioElement | null;

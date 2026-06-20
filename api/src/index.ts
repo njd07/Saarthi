@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { authMiddleware } from "./middleware/auth.js";
+import { clerkMiddleware } from "@hono/clerk-auth";
 import type { AppVariables } from "./types.js";
 
 import authRoutes from "./routes/auth.js";
@@ -49,6 +50,9 @@ app.use(
 app.get("/api/health", (c) =>
   c.json({ status: "ok", service: "saarthi-api", timestamp: new Date().toISOString() }),
 );
+
+// ── Clerk Auth Middleware ───────────────────────────────────────────────────
+app.use("/api/*", clerkMiddleware());
 
 // ── Public routes (no auth) ─────────────────────────────────────────────────
 app.route("/api/auth", authRoutes);

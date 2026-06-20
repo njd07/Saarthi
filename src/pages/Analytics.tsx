@@ -98,7 +98,7 @@ export default function Analytics() {
             <img src="/logo.png" className="h-[18px] w-[18px]" alt="Saarthi Logo" />
             <span className="font-semibold text-sm">Analytics</span>
           </div>
-          <div className="w-12" />
+          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">Home</Link>
         </div>
       </header>
 

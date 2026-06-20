@@ -13,10 +13,11 @@ export function DictateBoard({ payload, isMuted }: { payload: DictatePayload; is
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
     >
       {[
         { label: "Original", text: payload.original, lang: "" },
+        { label: "Hinglish", text: (payload as any).hinglish || payload.original, lang: "hi" },
         { label: "हिन्दी", text: payload.hindi, lang: "hi" },
         { label: "English", text: payload.english, lang: "en" },
       ].map((col) => (

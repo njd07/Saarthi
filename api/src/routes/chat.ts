@@ -103,13 +103,14 @@ Mode: DICTATE. The user spoke a sentence in Hinglish. Output JSON ONLY:
 {
   "original": "user's spoken sentence as-is",
   "hindi": "the same meaning written in clean Devanagari Hindi",
-  "english": "the same meaning written in clean English"
+  "english": "the same meaning written in clean English",
+  "hinglish": "the same meaning written in Hinglish — use English/Latin script ONLY but keep Hindi words as they sound (e.g. namaste, kitna, bahut). Do NOT use Devanagari."
 }
 No commentary.`;
 
-const RAG_STRICT_RIDER = `IMPORTANT: The TEACHER_BOOK_CONTEXT below contains snippets from the teacher's uploaded textbook. Answer ONLY using these snippets. If the answer is not in the snippets, set speech to "Yeh topic aapki kitaab mein nahi mila — please upload the right chapter ya different mode try kariye." and bullets to an empty array. Quote phrases verbatim where possible.`;
+const RAG_STRICT_RIDER = `IMPORTANT: The TEACHER_BOOK_CONTEXT below contains snippets from the teacher's uploaded textbook. Answer ONLY using these snippets. If the answer is NOT in the snippets or the snippets are IRRELEVANT to the user's question, set speech to "Yeh topic aapki kitaab mein nahi mila — please upload the right chapter ya different mode try kariye." and bullets to an empty array and sections to an empty array. Quote phrases verbatim where possible.`;
 
-const RAG_BLENDED_RIDER = `The TEACHER_BOOK_CONTEXT below contains snippets from the teacher's uploaded textbook. PREFER these snippets when relevant; you may supplement with general NCERT knowledge.`;
+const RAG_BLENDED_RIDER = `The TEACHER_BOOK_CONTEXT below contains snippets from the teacher's uploaded textbook. Use these snippets ONLY if they are RELEVANT to the user's question. If the snippets are about a completely different topic than what the user asked, IGNORE them entirely and answer from your general knowledge. Do NOT cite or reference irrelevant textbook content.`;
 
 function buildSystem(mode: string) {
   if (mode === "quiz") return QUIZ_PROMPT;
@@ -294,7 +295,13 @@ async function ragSearch(
 
     if (!result.rows.length) return { snippets: "", citations: [] };
 
-    const docIds = [...new Set(result.rows.map((r: { document_id: string }) => r.document_id))];
+    // Filter out low-relevance chunks — if similarity is too low, the PDF content
+    // is probably about a different topic than what the user asked.
+    const SIMILARITY_THRESHOLD = 0.30;
+    const relevantRows = result.rows.filter((r: { similarity: number }) => r.similarity >= SIMILARITY_THRESHOLD);
+    if (!relevantRows.length) return { snippets: "", citations: [] };
+
+    const docIds = [...new Set(relevantRows.map((r: { document_id: string }) => r.document_id))];
     const titleResult = await query(
       `SELECT id, title FROM documents WHERE id = ANY($1)`,
       [docIds],
@@ -302,10 +309,10 @@ async function ragSearch(
     const titles: Record<string, string> = {};
     for (const d of titleResult.rows) titles[d.id] = d.title;
 
-    const snippets = result.rows
+    const snippets = relevantRows
       .map((r: { page: number; content: string }, i: number) => `[#${i + 1} p.${r.page}] ${r.content}`)
       .join("\n\n");
-    const citations = result.rows.map((r: { document_id: string; page: number; content: string }) => ({
+    const citations = relevantRows.map((r: { document_id: string; page: number; content: string }) => ({
       documentId: r.document_id,
       documentTitle: titles[r.document_id] || "Textbook",
       page: r.page,

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { getToken, setToken, clearToken, authFetch } from "@/lib/auth";
+import { useUser, useAuth as useClerkAuth } from "@clerk/clerk-react";
+import { setTokenProvider } from "@/lib/auth";
 
 export interface User {
   id: string;
@@ -23,8 +24,8 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signUp: () => Promise<void>;
+  signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -32,108 +33,52 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchMe = async () => {
-    const token = getToken();
-    if (!token) {
-      setUser(null);
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      const r = await authFetch("/api/auth/me");
-      if (!r.ok) {
-        clearToken();
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-      const data = await r.json();
-      const u = data.user;
-      setUser({
-        id: u.id,
-        email: u.email,
-        fullName: u.fullName,
-      });
-      setProfile({
-        user_id: u.id,
-        full_name: u.fullName,
-        avatar_url: u.avatarUrl || null,
-        job_title: u.jobTitle || null,
-        created_at: "",
-        updated_at: "",
-        id: u.id,
-      });
-    } catch {
-      clearToken();
-      setUser(null);
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { user: clerkUser, isLoaded: userLoaded } = useUser();
+  const { signOut: clerkSignOut, isLoaded: authLoaded, getToken } = useClerkAuth();
 
   useEffect(() => {
-    fetchMe();
-  }, []);
+    setTokenProvider(getToken);
+  }, [getToken]);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const r = await authFetch("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password, fullName }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "Signup failed");
-    setToken(data.token);
-    setUser({ id: data.user.id, email: data.user.email, fullName: data.user.fullName });
-    setProfile({
-      user_id: data.user.id,
-      full_name: data.user.fullName,
-      avatar_url: null,
-      job_title: null,
-      created_at: "",
-      updated_at: "",
-      id: data.user.id,
-    });
-  };
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const loading = !userLoaded || !authLoaded;
 
-  const signIn = async (email: string, password: string) => {
-    const r = await authFetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "Login failed");
-    setToken(data.token);
-    setUser({ id: data.user.id, email: data.user.email, fullName: data.user.fullName });
-    setProfile({
-      user_id: data.user.id,
-      full_name: data.user.fullName,
-      avatar_url: null,
-      job_title: null,
-      created_at: "",
-      updated_at: "",
-      id: data.user.id,
-    });
-  };
+  useEffect(() => {
+    if (clerkUser) {
+      setUser({
+        id: clerkUser.id,
+        email: clerkUser.primaryEmailAddress?.emailAddress || "",
+        fullName: clerkUser.fullName || "User",
+        avatarUrl: clerkUser.imageUrl,
+      });
+      setProfile({
+        user_id: clerkUser.id,
+        full_name: clerkUser.fullName || "User",
+        avatar_url: clerkUser.imageUrl || null,
+        job_title: null,
+        created_at: "",
+        updated_at: "",
+        id: clerkUser.id,
+      });
+    } else {
+      setUser(null);
+      setProfile(null);
+    }
+  }, [clerkUser]);
 
-  const signOut = async () => {
-    clearToken();
-    setUser(null);
-    setProfile(null);
-  };
-
-  const refreshProfile = async () => {
-    await fetchMe();
-  };
+  const dummyAsync = async () => {};
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      loading, 
+      signUp: dummyAsync, 
+      signIn: dummyAsync, 
+      signOut: () => clerkSignOut(), 
+      refreshProfile: dummyAsync 
+    }}>
       {children}
     </AuthContext.Provider>
   );
