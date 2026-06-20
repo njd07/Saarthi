@@ -1,4 +1,13 @@
 {
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build"
+    }
+  ],
+  "excludes": [
+    "api/**/*"
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
